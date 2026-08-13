@@ -5,270 +5,369 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-function countTable($pdo, $table) {
-    try { return $pdo->query("SELECT COUNT(*) FROM $table")->fetchColumn(); }
-    catch (Exception $e) { return 0; }
-}
-
 $counts = [
-    'employment'  => countTable($pdo, 'employment_cases'),
-    'immigration' => countTable($pdo, 'immigration_cases'),
-    'criminal'    => countTable($pdo, 'criminal_cases'),
-    'tort'        => countTable($pdo, 'tort_cases'),
-    'contract'    => countTable($pdo, 'contract_cases'),
-    'oil_gas'     => countTable($pdo, 'oil_gas_cases'),
-    'advice'      => countTable($pdo, 'legal_advice'),
-    'letters'     => countTable($pdo, 'letters'),
-    'witness'     => countTable($pdo, 'witness_statements'),
-    'skeleton'    => countTable($pdo, 'skeleton_arguments'),
-    'appeals'     => countTable($pdo, 'appeals'),
-    'company'     => countTable($pdo, 'company_cases'),
+  'advice'      => $pdo->query("SELECT COUNT(*) FROM legal_advice")->fetchColumn(),
+  'letters'     => $pdo->query("SELECT COUNT(*) FROM draft_letters")->fetchColumn(),
+  'witness'     => $pdo->query("SELECT COUNT(*) FROM witness_statements")->fetchColumn(),
+  'skeleton'    => $pdo->query("SELECT COUNT(*) FROM skeleton_arguments")->fetchColumn(),
+  'appeal'      => $pdo->query("SELECT COUNT(*) FROM grounds_of_appeal")->fetchColumn(),
+  'immigration' => $pdo->query("SELECT COUNT(*) FROM immigration_cases")->fetchColumn(),
+  'employment'  => $pdo->query("SELECT COUNT(*) FROM employment_cases")->fetchColumn(),
 ];
+$total = array_sum($counts);
+
+$recent = [];
+foreach ([
+  "SELECT 'Legal Advice' as module, client_name as title, status, created_at FROM legal_advice ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Letter' as module, recipient_name as title, status, created_at FROM draft_letters ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Witness Statement' as module, case_title as title, status, created_at FROM witness_statements ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Skeleton Argument' as module, case_title as title, status, created_at FROM skeleton_arguments ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Grounds of Appeal' as module, case_title as title, status, created_at FROM grounds_of_appeal ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Immigration' as module, applicant_name as title, status, created_at FROM immigration_cases ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Employment' as module, claimant_name as title, status, created_at FROM employment_cases ORDER BY created_at DESC LIMIT 2",
+] as $sql) {
+  $recent = array_merge($recent, $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
+}
+usort($recent, fn($a,$b) => strtotime($b['created_at']) - strtotime($a['created_at']));
+$recent = array_slice($recent, 0, 10);
 ?>
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Dashboard &mdash; AEP Legal Platform</title>
+<title>Dashboard — AEP Legal Platform</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
 .topbar{background:#1a3c5e;color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
 .topbar .brand{font-size:1.1rem;font-weight:bold}
-.topbar a{color:#fff;text-decoration:none;font-size:0.88rem;margin-left:16px}
+.topbar .nav{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.topbar a{color:#fff;text-decoration:none;font-size:0.88rem}
 .topbar a:hover{text-decoration:underline}
+.topbar .user{background:rgba(255,255,255,0.15);padding:6px 14px;border-radius:20px;font-size:0.85rem}
 .hero{background:linear-gradient(135deg,#1a3c5e,#2e6da4);color:#fff;padding:36px 40px;margin-bottom:30px}
-.hero h1{font-size:1.8rem}
-.hero p{font-size:0.9rem;opacity:0.85;margin-top:6px}
-.hero .meta{margin-top:14px;font-size:0.85rem;opacity:0.75}
+.hero h1{font-size:1.8rem;margin-bottom:6px}
+.hero p{font-size:0.95rem;opacity:0.85}
+.hero .date{font-size:0.85rem;opacity:0.7;margin-top:8px}
 .container{max-width:1200px;margin:0 auto;padding:0 28px 40px}
-.section-heading{font-size:1rem;font-weight:bold;color:#1a3c5e;margin:28px 0 14px;padding-bottom:6px;border-bottom:2px solid #1a3c5e}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-bottom:10px}
-.card{background:#fff;border-radius:10px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,0.07);text-decoration:none;color:#333;display:flex;flex-direction:column;gap:10px;transition:transform .15s,box-shadow .15s;border-top:4px solid #1a3c5e}
-.card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.12)}
-.card .icon{font-size:2rem}
-.card .title{font-size:0.95rem;font-weight:bold;color:#1a3c5e}
-.card .count{font-size:1.5rem;font-weight:bold}
-.card .label{font-size:0.75rem;color:#888}
-.card .actions{display:flex;gap:8px;margin-top:6px}
-.card .actions a{font-size:0.78rem;padding:5px 10px;border-radius:4px;text-decoration:none;font-weight:bold}
-.btn-view{background:#e8f0fe;color:#1a3c5e}
-.btn-new{background:#1a3c5e;color:#fff}
-.emp{border-top-color:#c0392b}.emp .title{color:#c0392b}
-.imm{border-top-color:#2980b9}.imm .title{color:#2980b9}
-.crim{border-top-color:#2c3e50}.crim .title{color:#2c3e50}
-.tort{border-top-color:#8e44ad}.tort .title{color:#8e44ad}
-.cont{border-top-color:#e67e22}.cont .title{color:#e67e22}
-.oil{border-top-color:#16a085}.oil .title{color:#16a085}
-.adv{border-top-color:#27ae60}.adv .title{color:#27ae60}
-.let{border-top-color:#f39c12}.let .title{color:#f39c12}
-.wit{border-top-color:#d35400}.wit .title{color:#d35400}
-.ske{border-top-color:#7f8c8d}.ske .title{color:#7f8c8d}
-.app{border-top-color:#c0392b}.app .title{color:#c0392b}
-.com{border-top-color:#1abc9c}.com .title{color:#1abc9c}
-.stat-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.stat{background:#fff;border-radius:10px;padding:18px 22px;box-shadow:0 2px 8px rgba(0,0,0,0.07);text-align:center}
-.stat .num{font-size:2rem;font-weight:bold;color:#1a3c5e}
-.stat .lbl{font-size:0.78rem;color:#888;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:30px}
+.stat-card{background:#fff;border-radius:10px;padding:18px 12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.07);border-top:4px solid #1a3c5e;transition:transform 0.2s}
+.stat-card:hover{transform:translateY(-3px)}
+.stat-card.advice{border-top-color:#28a745}
+.stat-card.letters{border-top-color:#17a2b8}
+.stat-card.witness{border-top-color:#fd7e14}
+.stat-card.skeleton{border-top-color:#6f42c1}
+.stat-card.appeal{border-top-color:#dc3545}
+.stat-card.immigration{border-top-color:#003366}
+.stat-card.employment{border-top-color:#c0392b}
+.stat-number{font-size:1.8rem;font-weight:bold;color:#1a3c5e}
+.stat-label{font-size:0.72rem;color:#888;margin-top:4px}
+.stat-icon{font-size:1.3rem;margin-bottom:4px}
+.section-heading{font-size:1rem;font-weight:bold;color:#1a3c5e;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e0e6ef}
+.quick-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:30px}
+.quick-btn{background:#fff;border-radius:8px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-decoration:none;color:#1a3c5e;transition:all 0.2s;border:1px solid #e0e6ef;display:block}
+.quick-btn:hover{background:#1a3c5e;color:#fff;transform:translateY(-2px)}
+.quick-btn .q-icon{font-size:1.4rem;margin-bottom:6px}
+.quick-btn .q-label{font-size:0.75rem;font-weight:bold}
+.modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:30px}
+.module-card{background:#fff;border-radius:10px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,0.07);display:flex;flex-direction:column;gap:10px}
+.module-card.reserved{opacity:0.65;border:2px dashed #ccc}
+.mod-header{display:flex;align-items:center;gap:12px}
+.mod-icon{font-size:1.8rem}
+.mod-title{font-size:0.95rem;font-weight:bold;color:#1a3c5e}
+.mod-count{font-size:0.82rem;color:#888}
+.mod-desc{font-size:0.82rem;color:#666;line-height:1.5}
+.mod-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{padding:7px 14px;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;text-decoration:none;display:inline-block}
+.btn-primary{background:#1a3c5e;color:#fff}
+.btn-primary:hover{background:#122840}
+.btn-outline{background:#fff;color:#1a3c5e;border:1px solid #1a3c5e}
+.btn-outline:hover{background:#f0f4ff}
+.btn-reserved{background:#f8f9fa;color:#aaa;border:1px solid #ddd;cursor:not-allowed}
+.badge-reserved{background:#fff3cd;color:#856404;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:bold}
+.badge-new{background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:bold}
+.recent-card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.07);margin-bottom:30px}
+table{width:100%;border-collapse:collapse;font-size:0.87rem}
+th{background:#f4f6f9;color:#555;padding:10px 12px;text-align:left;font-size:0.78rem;text-transform:uppercase}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8f9ff}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:bold}
+.badge-draft{background:#fff3cd;color:#856404}
+.badge-final{background:#d4edda;color:#155724}
+.badge-filed{background:#cce5ff;color:#004085}
+.badge-sent{background:#cce5ff;color:#004085}
+.badge-active{background:#cce5ff;color:#004085}
+.badge-won{background:#d4edda;color:#155724}
+.badge-lost{background:#f8d7da;color:#721c24}
+.badge-settled{background:#d4edda;color:#155724}
+.badge-tribunal{background:#d6d8f7;color:#2c2f8a}
+.badge-withdrawn{background:#e2e3e5;color:#383d41}
+.badge-closed{background:#e2e3e5;color:#383d41}
+.mod-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;background:#e8eef5;color:#1a3c5e;font-weight:bold}
+.dash-footer{text-align:center;padding:20px;color:#aaa;font-size:0.8rem;border-top:1px solid #e0e6ef}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">&#9878;&#65039; AEP Legal Platform</div>
-  <div>
-    <a href="dashboard.php">&#127968; Dashboard</a>
-    <a href="admin.php">&#9881;&#65039; Admin</a>
-    <a href="users.php">&#128100; Users</a>
-    <a href="logout.php">&#128682; Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</a>
+  <div class="nav">
+    <a href="advice_list.php">Legal Advice</a>
+    <a href="letter_list.php">Letters</a>
+    <a href="witness_list.php">Witness</a>
+    <a href="skeleton_list.php">Skeleton</a>
+    <a href="appeal_list.php">Appeals</a>
+    <a href="immigration_list.php">&#127468;&#127463; Immigration</a>
+    <a href="employment_list.php">&#128188; Employment</a>
+    <span class="user">&#128100; <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+    <a href="logout.php">&#128682; Logout</a>
   </div>
 </div>
 
 <div class="hero">
-  <h1>&#9878;&#65039; AEP Legal Platform</h1>
-  <p>Welcome back, <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong>! Manage all your legal cases from one place.</p>
-  <div class="meta">&#128197; <?php echo date('l, d F Y'); ?> &nbsp;|&nbsp; &#128336; <?php echo date('H:i'); ?></div>
+  <h1>Welcome to AEP Legal Platform &#128075;</h1>
+  <p>Manage all your legal documents, court processes and client matters in one place.</p>
+  <div class="date">&#128197; <?php echo date('l, d F Y'); ?></div>
 </div>
 
 <div class="container">
 
-  <!-- STATS -->
-  <div class="stat-bar">
-    <div class="stat"><div class="num"><?php echo array_sum($counts); ?></div><div class="lbl">Total Cases</div></div>
-    <div class="stat"><div class="num"><?php echo $counts['employment'] + $counts['immigration'] + $counts['criminal']; ?></div><div class="lbl">Active Law Cases</div></div>
-    <div class="stat"><div class="num"><?php echo $counts['advice'] + $counts['letters']; ?></div><div class="lbl">Advice &amp; Letters</div></div>
-    <div class="stat"><div class="num"><?php echo $counts['appeals'] + $counts['skeleton'] + $counts['witness']; ?></div><div class="lbl">Court Documents</div></div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">&#128202;</div>
+      <div class="stat-number"><?php echo $total; ?></div>
+      <div class="stat-label">Total Documents</div>
+    </div>
+    <div class="stat-card advice">
+      <div class="stat-icon">&#128221;</div>
+      <div class="stat-number"><?php echo $counts['advice']; ?></div>
+      <div class="stat-label">Legal Advice</div>
+    </div>
+    <div class="stat-card letters">
+      <div class="stat-icon">&#9993;&#65039;</div>
+      <div class="stat-number"><?php echo $counts['letters']; ?></div>
+      <div class="stat-label">Letters</div>
+    </div>
+    <div class="stat-card witness">
+      <div class="stat-icon">&#128100;</div>
+      <div class="stat-number"><?php echo $counts['witness']; ?></div>
+      <div class="stat-label">Witness</div>
+    </div>
+    <div class="stat-card skeleton">
+      <div class="stat-icon">&#128220;</div>
+      <div class="stat-number"><?php echo $counts['skeleton']; ?></div>
+      <div class="stat-label">Skeleton Args</div>
+    </div>
+    <div class="stat-card appeal">
+      <div class="stat-icon">&#127963;&#65039;</div>
+      <div class="stat-number"><?php echo $counts['appeal']; ?></div>
+      <div class="stat-label">Appeals</div>
+    </div>
+    <div class="stat-card immigration">
+      <div class="stat-icon">&#127468;&#127463;</div>
+      <div class="stat-number"><?php echo $counts['immigration']; ?></div>
+      <div class="stat-label">Immigration</div>
+    </div>
+    <div class="stat-card employment">
+      <div class="stat-icon">&#128188;</div>
+      <div class="stat-number"><?php echo $counts['employment']; ?></div>
+      <div class="stat-label">Employment</div>
+    </div>
   </div>
 
-  <!-- LAW DOMAINS -->
-  <div class="section-heading">&#128188; Law Domains</div>
-  <div class="grid">
+  <div class="section-heading">&#9889; Quick Actions</div>
+  <div class="quick-grid">
+    <a href="advice_create.php" class="quick-btn">
+      <div class="q-icon">&#128221;</div>
+      <div class="q-label">New Legal Advice</div>
+    </a>
+    <a href="letter_create.php" class="quick-btn">
+      <div class="q-icon">&#9993;&#65039;</div>
+      <div class="q-label">Draft Letter</div>
+    </a>
+    <a href="witness_create.php" class="quick-btn">
+      <div class="q-icon">&#128100;</div>
+      <div class="q-label">Witness Statement</div>
+    </a>
+    <a href="skeleton_create.php" class="quick-btn">
+      <div class="q-icon">&#128220;</div>
+      <div class="q-label">Skeleton Argument</div>
+    </a>
+    <a href="appeal_create.php" class="quick-btn">
+      <div class="q-icon">&#127963;&#65039;</div>
+      <div class="q-label">Grounds of Appeal</div>
+    </a>
+    <a href="immigration_create.php" class="quick-btn">
+      <div class="q-icon">&#127468;&#127463;</div>
+      <div class="q-label">Immigration Case</div>
+    </a>
+    <a href="employment_create.php" class="quick-btn">
+      <div class="q-icon">&#128188;</div>
+      <div class="q-label">Employment Case</div>
+    </a>
+  </div>
 
-    <div class="card emp">
-      <div class="icon">&#128188;</div>
-      <div class="title">Employment Law</div>
-      <div class="count"><?php echo $counts['employment']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="employment_list.php" class="btn-view">&#128065; View All</a>
-        <a href="employment_create.php" class="btn-new">+ New</a>
+  <div class="section-heading">&#128194; Modules</div>
+  <div class="modules-grid">
+
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#128221;</div>
+        <div>
+          <div class="mod-title">Legal Advice</div>
+          <div class="mod-count"><?php echo $counts['advice']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Prepare formal legal opinions and advice letters for clients.</div>
+      <div class="mod-actions">
+        <a href="advice_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="advice_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card imm">
-      <div class="icon">&#9992;&#65039;</div>
-      <div class="title">Immigration Law</div>
-      <div class="count"><?php echo $counts['immigration']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="immigration_list.php" class="btn-view">&#128065; View All</a>
-        <a href="immigration_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#9993;&#65039;</div>
+        <div>
+          <div class="mod-title">Draft Letters</div>
+          <div class="mod-count"><?php echo $counts['letters']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Draft demand letters, notices and legal correspondence.</div>
+      <div class="mod-actions">
+        <a href="letter_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="letter_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card crim">
-      <div class="icon">&#9878;</div>
-      <div class="title">Criminal Law</div>
-      <div class="count"><?php echo $counts['criminal']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="criminal_list.php" class="btn-view">&#128065; View All</a>
-        <a href="criminal_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#128100;</div>
+        <div>
+          <div class="mod-title">Witness Statements</div>
+          <div class="mod-count"><?php echo $counts['witness']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Prepare sworn witness statements for filing in court.</div>
+      <div class="mod-actions">
+        <a href="witness_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="witness_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card tort">
-      <div class="icon">&#9878;&#65039;</div>
-      <div class="title">Tort Law</div>
-      <div class="count"><?php echo $counts['tort']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="tort_list.php" class="btn-view">&#128065; View All</a>
-        <a href="tort_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#128220;</div>
+        <div>
+          <div class="mod-title">Skeleton Arguments</div>
+          <div class="mod-count"><?php echo $counts['skeleton']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Prepare detailed skeleton arguments with legal authorities.</div>
+      <div class="mod-actions">
+        <a href="skeleton_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="skeleton_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card cont">
-      <div class="icon">&#128221;</div>
-      <div class="title">Contract Law</div>
-      <div class="count"><?php echo $counts['contract']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="contract_list.php" class="btn-view">&#128065; View All</a>
-        <a href="contract_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#127963;&#65039;</div>
+        <div>
+          <div class="mod-title">Grounds of Appeal</div>
+          <div class="mod-count"><?php echo $counts['appeal']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Prepare and file grounds of appeal against lower court judgments.</div>
+      <div class="mod-actions">
+        <a href="appeal_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="appeal_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card oil">
-      <div class="icon">&#128167;</div>
-      <div class="title">Oil &amp; Gas Law</div>
-      <div class="count"><?php echo $counts['oil_gas']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="oil_gas_list.php" class="btn-view">&#128065; View All</a>
-        <a href="oil_gas_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#127468;&#127463;</div>
+        <div>
+          <div class="mod-title">UK Immigration <span class="badge-new">NEW</span></div>
+          <div class="mod-count"><?php echo $counts['immigration']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Handle visa applications, long residency, ILR, appeals and all immigration matters.</div>
+      <div class="mod-actions">
+        <a href="immigration_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="immigration_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
-    <div class="card com">
-      <div class="icon">&#127970;</div>
-      <div class="title">Company Law</div>
-      <div class="count"><?php echo $counts['company']; ?></div>
-      <div class="label">Cases on record</div>
-      <div class="actions">
-        <a href="company_list.php" class="btn-view">&#128065; View All</a>
-        <a href="company_create.php" class="btn-new">+ New</a>
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#128188;</div>
+        <div>
+          <div class="mod-title">Employment Law <span class="badge-new">NEW</span></div>
+          <div class="mod-count"><?php echo $counts['employment']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Unfair dismissal, discrimination, tribunal claims and employment contracts.</div>
+      <div class="mod-actions">
+        <a href="employment_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="employment_list.php" class="btn btn-outline">&#128203; View All</a>
+      </div>
+    </div>
+
+    <div class="module-card reserved">
+      <div class="mod-header">
+        <div class="mod-icon">&#127968;</div>
+        <div>
+          <div class="mod-title">Property Law <span class="badge-reserved">COMING SOON</span></div>
+          <div class="mod-count">Reserved</div>
+        </div>
+      </div>
+      <div class="mod-desc">Conveyancing, lease agreements, landlord and tenant disputes and property transfers.</div>
+      <div class="mod-actions">
+        <span class="btn btn-reserved">&#128274; Coming Soon</span>
       </div>
     </div>
 
   </div>
 
-  <!-- COURT DOCUMENTS -->
-  <div class="section-heading">&#128196; Court Documents &amp; Legal Tools</div>
-  <div class="grid">
-
-    <div class="card adv">
-      <div class="icon">&#128172;</div>
-      <div class="title">Legal Advice</div>
-      <div class="count"><?php echo $counts['advice']; ?></div>
-      <div class="label">Advice records</div>
-      <div class="actions">
-        <a href="advice_list.php" class="btn-view">&#128065; View All</a>
-        <a href="advice_create.php" class="btn-new">+ New</a>
-      </div>
-    </div>
-
-    <div class="card let">
-      <div class="icon">&#9993;&#65039;</div>
-      <div class="title">Letters</div>
-      <div class="count"><?php echo $counts['letters']; ?></div>
-      <div class="label">Letters on record</div>
-      <div class="actions">
-        <a href="letter_list.php" class="btn-view">&#128065; View All</a>
-        <a href="letter_create.php" class="btn-new">+ New</a>
-      </div>
-    </div>
-
-    <div class="card wit">
-      <div class="icon">&#128100;</div>
-      <div class="title">Witness Statements</div>
-      <div class="count"><?php echo $counts['witness']; ?></div>
-      <div class="label">Statements on record</div>
-      <div class="actions">
-        <a href="witness_list.php" class="btn-view">&#128065; View All</a>
-        <a href="witness_create.php" class="btn-new">+ New</a>
-      </div>
-    </div>
-
-    <div class="card ske">
-      <div class="icon">&#128196;</div>
-      <div class="title">Skeleton Arguments</div>
-      <div class="count"><?php echo $counts['skeleton']; ?></div>
-      <div class="label">Arguments on record</div>
-      <div class="actions">
-        <a href="skeleton_list.php" class="btn-view">&#128065; View All</a>
-        <a href="skeleton_create.php" class="btn-new">+ New</a>
-      </div>
-    </div>
-
-    <div class="card app">
-      <div class="icon">&#128209;</div>
-      <div class="title">Appeals</div>
-      <div class="count"><?php echo $counts['appeals']; ?></div>
-      <div class="label">Appeals on record</div>
-      <div class="actions">
-        <a href="appeal_list.php" class="btn-view">&#128065; View All</a>
-        <a href="appeal_create.php" class="btn-new">+ New</a>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ADMIN -->
-  <div class="section-heading">&#9881;&#65039; Administration</div>
-  <div class="grid">
-    <a href="admin.php" class="card" style="border-top-color:#e74c3c">
-      <div class="icon">&#9881;&#65039;</div>
-      <div class="title" style="color:#e74c3c">Admin Panel</div>
-      <div class="label">Manage platform settings</div>
-    </a>
-    <a href="users.php" class="card" style="border-top-color:#3498db">
-      <div class="icon">&#128101;</div>
-      <div class="title" style="color:#3498db">User Management</div>
-      <div class="label">Manage platform users</div>
-    </a>
-    <a href="admin_law.php" class="card" style="border-top-color:#9b59b6">
-      <div class="icon">&#128218;</div>
-      <div class="title" style="color:#9b59b6">Law Library</div>
-      <div class="label">Manage legal references</div>
-    </a>
-    <a href="setup_db.php" class="card" style="border-top-color:#27ae60">
-      <div class="icon">&#128190;</div>
-      <div class="title" style="color:#27ae60">Database Setup</div>
-      <div class="label">Initialise / repair database</div>
-    </a>
+  <div class="section-heading">&#128336; Recent Activity</div>
+  <div class="recent-card">
+    <?php if (empty($recent)): ?>
+      <p style="text-align:center;color:#888;padding:30px">No activity yet. Start by creating a document above!</p>
+    <?php else: ?>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Module</th>
+            <th>Title / Name</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($recent as $i => $row): ?>
+          <tr>
+            <td><?php echo $i + 1; ?></td>
+            <td><span class="mod-badge"><?php echo htmlspecialchars($row['module']); ?></span></td>
+            <td><?php echo htmlspecialchars($row['title']); ?></td>
+            <td><span class="badge badge-<?php echo $row['status']; ?>"><?php echo ucfirst($row['status']); ?></span></td>
+            <td><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
   </div>
 
 </div>
+
+<div class="dash-footer">
+  AEP Legal Platform &mdash; &copy; <?php echo date('Y'); ?> AEP Legal Consultancy. All rights reserved.
+  &nbsp;|&nbsp; Database v2.0 &nbsp;|&nbsp; 7 Active Modules
+</div>
+
 </body>
 </html>

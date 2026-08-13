@@ -1,0 +1,53 @@
+{
+  "platform": "AEP Legal Platform",
+  "version": "1.0.0",
+  "description": "API request templates for AEP Legal Platform",
+  "endpoints": {
+    "save_case": {
+      "url": "save-case.php",
+      "method": "POST",
+      "fields": {
+        "domain": "human_rights | tort | admin_law | oil_gas",
+        "id": "integer — case ID",
+        "field": "string — field name to update",
+        "value": "string — new value"
+      }
+    },
+    "analysis": {
+      "url": "analysis_engine.php",
+      "method": "GET",
+      "fields": {
+        "domain": "human_rights | tort | admin_law | oil_gas",
+        "id": "integer — case ID"
+      }
+    },
+    "draft": {
+      "url": "draft_engine.php",
+      "method": "GET",
+      "fields": {
+        "domain": "human_rights | tort | admin_law | oil_gas",
+        "id": "integer — case ID",
+        "doc_type": "demand_letter | legal_opinion | court_filing | settlement | cease_desist"
+      }
+    },
+    "cover_letter": {
+      "url": "hr_cover_letter.php",
+      "method": "GET",
+      "fields": {
+        "id": "integer — human rights case ID"
+      }
+    },
+    "checklist": {
+      "url": "hr_checklist.php",
+      "method": "GET",
+      "fields": {
+        "id": "integer — human rights case ID"
+      }
+    },
+    "reviews": {
+      "url": "hr_reviews.php",
+      "method": "GET",
+      "fields": {}
+    }
+  }
+}

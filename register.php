@@ -3,27 +3,24 @@ session_start();
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$error = '';
+$error   = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm  = $_POST['confirm'] ?? '';
-    if (!$username || !$password) {
-        $error = 'Username and password are required.';
-    } elseif ($password !== $confirm) {
-        $error = 'Passwords do not match.';
-    } else {
-        $check = $pdo->prepare('SELECT id FROM users WHERE username = ?');
-        $check->execute([$username]);
-        if ($check->fetch()) {
-            $error = 'Username already exists.';
-        } else {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+
+    if ($username && $password) {
+        try {
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $pdo->prepare('INSERT INTO users (username, password) VALUES (?, ?)')->execute([$username, $hash]);
-            $success = 'Account created! You can now log in.';
+            $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+            $stmt->execute([$username, $hash]);
+            $success = 'Account created! You can now login.';
+        } catch (Exception $e) {
+            $error = 'Username already exists. Please choose another.';
         }
+    } else {
+        $error = 'Please fill in all fields.';
     }
 }
 ?>
@@ -34,37 +31,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <title>Register — AEP Legal Platform</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a3c5e,#2e6da4);min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:#fff;border-radius:12px;padding:40px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
-.logo{text-align:center;margin-bottom:28px}
-.logo h1{font-size:1.4rem;color:#1a3c5e;margin-top:8px}
-.form-group{margin-bottom:18px}
-label{display:block;font-size:0.8rem;font-weight:bold;color:#555;margin-bottom:6px}
-input{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem}
+body{font-family:Arial,sans-serif;background:#f4f6f9;display:flex;justify-content:center;align-items:center;min-height:100vh}
+.card{background:#fff;border-radius:12px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.1);width:100%;max-width:400px}
+.logo{text-align:center;margin-bottom:24px}
+.logo h1{color:#1a3c5e;font-size:1.4rem}
+.logo p{color:#888;font-size:0.85rem;margin-top:4px}
+label{display:block;font-size:0.82rem;font-weight:bold;color:#555;margin-bottom:6px}
+input{width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;margin-bottom:16px}
 input:focus{outline:none;border-color:#1a3c5e}
-.btn{width:100%;padding:12px;background:#1a3c5e;color:#fff;border:none;border-radius:4px;font-size:0.95rem;cursor:pointer;margin-top:8px}
-.btn:hover{background:#122840}
-.alert{padding:10px 14px;border-radius:4px;margin-bottom:18px;font-size:0.88rem}
-.alert-error{background:#f8d7da;color:#721c24}
-.alert-success{background:#d4edda;color:#155724}
-.footer{text-align:center;margin-top:20px;font-size:0.8rem;color:#aaa}
+.btn{width:100%;padding:11px;background:#28a745;color:#fff;border:none;border-radius:4px;font-size:0.95rem;cursor:pointer}
+.btn:hover{background:#1e7e34}
+.alert{background:#f8d7da;color:#721c24;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:0.88rem}
+.alert-success{background:#d4edda;color:#155724;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:0.88rem}
+.links{text-align:center;margin-top:16px;font-size:0.85rem;color:#888}
+.links a{color:#1a3c5e;text-decoration:none}
+.links a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">
-    <div style="font-size:2.5rem">&#9878;&#65039;</div>
-    <h1>Create Account</h1>
+    <h1>⚖️ AEP Legal Platform</h1>
+    <p>Create your account</p>
   </div>
-  <?php if ($error): ?><div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
-  <?php if ($success): ?><div class="alert alert-success"><?php echo htmlspecialchars($success); ?> <a href="login.php">Login here</a></div><?php endif; ?>
+
+  <?php if ($error): ?>
+    <div class="alert">❌ <?php echo $error; ?></div>
+  <?php endif; ?>
+  <?php if ($success): ?>
+    <div class="alert-success">✅ <?php echo $success; ?>
+      <br/><a href="login.php">→ Click here to Login</a>
+    </div>
+  <?php endif; ?>
+
   <form method="POST">
-    <div class="form-group"><label>Username</label><input type="text" name="username" required/></div>
-    <div class="form-group"><label>Password</label><input type="password" name="password" required/></div>
-    <div class="form-group"><label>Confirm Password</label><input type="password" name="confirm" required/></div>
-    <button type="submit" class="btn">Create Account</button>
+    <label>Username</label>
+    <input type="text" name="username" required autofocus placeholder="admin"/>
+
+    <label>Password</label>
+    <input type="password" name="password" required placeholder="123"/>
+
+    <button type="submit" class="btn">✅ Create Account</button>
   </form>
-  <div class="footer"><a href="login.php">Back to Login</a></div>
+
+  <div class="links">
+    Already have an account? <a href="login.php">Login here</a>
+  </div>
 </div>
 </body>
 </html>
