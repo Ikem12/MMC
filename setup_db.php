@@ -132,27 +132,19 @@ $tables[] = 'grounds_of_appeal';
 // ============================================================
 $pdo->exec("CREATE TABLE IF NOT EXISTS immigration_cases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    -- CASE INFO
     visa_type TEXT NOT NULL,
     case_reference TEXT,
     ho_reference TEXT,
     status TEXT DEFAULT 'draft',
-
-    -- APPLICANT
     applicant_name TEXT NOT NULL,
     date_of_birth TEXT,
     nationality TEXT,
     passport_number TEXT,
     passport_expiry TEXT,
     place_of_birth TEXT,
-
-    -- CONTACT
     applicant_address TEXT,
     applicant_email TEXT,
     applicant_phone TEXT,
-
-    -- RESIDENCY
     date_of_entry TEXT,
     port_of_entry TEXT,
     residency_type TEXT,
@@ -160,63 +152,258 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS immigration_cases (
     total_absences TEXT,
     breaks_in_residence TEXT,
     visa_history TEXT,
-
-    -- FAMILY / DEPENDANTS
     marital_status TEXT,
     sponsor_name TEXT,
     sponsor_dob TEXT,
     sponsor_nationality TEXT,
     sponsor_status TEXT,
     dependants TEXT,
-
-    -- EMPLOYMENT
     employment_history TEXT,
     current_employer TEXT,
     job_title TEXT,
     salary TEXT,
-
-    -- LEGAL
     legal_basis TEXT,
     article8_grounds TEXT,
     evidence_available TEXT,
     representations TEXT,
     previous_refusals TEXT,
     refusal_reasons TEXT,
-
-    -- COUNSEL
     lawyer_name TEXT,
     law_firm TEXT,
-
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 $tables[] = 'immigration_cases';
 
 // ============================================================
-// 8. EMPLOYMENT CASES (RESERVED)
+// 8. ADMIN LAW CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS admin_law_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    client_name TEXT,
+    client_email TEXT,
+    client_phone TEXT,
+    client_address TEXT,
+    opposing_party TEXT,
+    court TEXT,
+    judge TEXT,
+    case_title TEXT,
+    date_filed TEXT,
+    background TEXT,
+    legal_issues TEXT,
+    grounds TEXT,
+    relief_sought TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    representations TEXT,
+    outcome TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'admin_law_cases';
+
+// ============================================================
+// 9. CRIMINAL CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS criminal_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    defendant_name TEXT,
+    defendant_email TEXT,
+    defendant_phone TEXT,
+    defendant_address TEXT,
+    prosecution TEXT,
+    court TEXT,
+    judge TEXT,
+    charge TEXT,
+    date_of_offence TEXT,
+    plea TEXT,
+    bail_status TEXT,
+    facts TEXT,
+    defence TEXT,
+    mitigation TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    witnesses TEXT,
+    outcome TEXT,
+    sentence TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'criminal_cases';
+
+// ============================================================
+// 10. TORT CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS tort_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    claimant_name TEXT,
+    claimant_email TEXT,
+    claimant_phone TEXT,
+    claimant_address TEXT,
+    defendant_name TEXT,
+    court TEXT,
+    judge TEXT,
+    tort_type TEXT,
+    incident_date TEXT,
+    incident_location TEXT,
+    facts TEXT,
+    duty_of_care TEXT,
+    breach TEXT,
+    causation TEXT,
+    damage TEXT,
+    relief_sought TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    outcome TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'tort_cases';
+
+// ============================================================
+// 11. COMPANY LAW CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS company_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    company_name TEXT,
+    company_rc TEXT,
+    client_name TEXT,
+    client_email TEXT,
+    client_phone TEXT,
+    client_address TEXT,
+    opposing_party TEXT,
+    court TEXT,
+    judge TEXT,
+    matter_title TEXT,
+    date_filed TEXT,
+    background TEXT,
+    legal_issues TEXT,
+    relief_sought TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    outcome TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'company_cases';
+
+// ============================================================
+// 12. OIL & GAS CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS oil_gas_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    client_name TEXT,
+    client_email TEXT,
+    client_phone TEXT,
+    client_address TEXT,
+    opposing_party TEXT,
+    regulatory_body TEXT,
+    court TEXT,
+    licence_number TEXT,
+    field_location TEXT,
+    matter_title TEXT,
+    date_filed TEXT,
+    background TEXT,
+    legal_issues TEXT,
+    relief_sought TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    outcome TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'oil_gas_cases';
+
+// ============================================================
+// 13. HUMAN RIGHTS CASES
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS human_rights_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_type TEXT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    lawyer_name TEXT,
+    law_firm TEXT,
+    applicant_name TEXT,
+    applicant_email TEXT,
+    applicant_phone TEXT,
+    applicant_address TEXT,
+    respondent TEXT,
+    court TEXT,
+    judge TEXT,
+    rights_violated TEXT,
+    incident_date TEXT,
+    background TEXT,
+    legal_issues TEXT,
+    article_relied_on TEXT,
+    relief_sought TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    outcome TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'human_rights_cases';
+
+// ============================================================
+// 14. EMPLOYMENT CASES
 // ============================================================
 $pdo->exec("CREATE TABLE IF NOT EXISTS employment_cases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_type TEXT,
     case_title TEXT,
+    case_reference TEXT,
     claimant_name TEXT,
+    claimant_email TEXT,
+    claimant_phone TEXT,
     respondent_name TEXT,
     tribunal TEXT,
     case_number TEXT,
+    employment_start TEXT,
+    employment_end TEXT,
+    job_title TEXT,
+    salary TEXT,
     claim_details TEXT,
     remedy_sought TEXT,
     lawyer_name TEXT,
+    law_firm TEXT,
     status TEXT DEFAULT 'draft',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 $tables[] = 'employment_cases';
 
 // ============================================================
-// 9. PROPERTY CASES (RESERVED)
+// 15. PROPERTY CASES (RESERVED)
 // ============================================================
 $pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_type TEXT,
     case_title TEXT,
+    case_reference TEXT,
     client_name TEXT,
     property_address TEXT,
     tenure TEXT,
@@ -225,6 +412,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
     purchase_price TEXT,
     details TEXT,
     lawyer_name TEXT,
+    law_firm TEXT,
     status TEXT DEFAULT 'draft',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
@@ -264,13 +452,19 @@ p{color:#666;font-size:0.9rem;margin-bottom:24px}
     <li><span class="tick">✓</span> skeleton_arguments</li>
     <li><span class="tick">✓</span> grounds_of_appeal</li>
     <li><span class="tick">✓</span> immigration_cases <span class="badge-new">NEW</span></li>
-    <li><span class="tick">✓</span> employment_cases <span class="badge-reserved">RESERVED</span></li>
+    <li><span class="tick">✓</span> admin_law_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> criminal_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> tort_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> company_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> oil_gas_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> human_rights_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> employment_cases</li>
     <li><span class="tick">✓</span> property_cases <span class="badge-reserved">RESERVED</span></li>
   </ul>
 
   <a href="dashboard.php" class="btn">→ Go to Dashboard</a>
 
-  <div class="footer">AEP Legal Platform — Database v2.0</div>
+  <div class="footer">AEP Legal Platform — Database v3.0</div>
 </div>
 </body>
 </html>
