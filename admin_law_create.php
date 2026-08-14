@@ -5,10 +5,62 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// ============================================================
+// AUTO-CREATE admin_law_cases TABLE IF NOT EXISTS
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS admin_law_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_reference TEXT,
+    status TEXT DEFAULT 'draft',
+    case_type TEXT,
+    client_name TEXT,
+    client_address TEXT,
+    client_email TEXT,
+    client_phone TEXT,
+    public_body_name TEXT,
+    public_body_address TEXT,
+    public_body_contact TEXT,
+    decision_date TEXT,
+    decision_description TEXT,
+    grounds_of_challenge TEXT,
+    judicial_review TEXT,
+    jr_permission_date TEXT,
+    jr_hearing_date TEXT,
+    jr_venue TEXT,
+    tribunal_name TEXT,
+    tribunal_reference TEXT,
+    tribunal_hearing_date TEXT,
+    human_rights_article TEXT,
+    regulatory_body TEXT,
+    licence_reference TEXT,
+    legal_basis TEXT,
+    evidence_available TEXT,
+    representations TEXT,
+    settlement_offers TEXT,
+    outcome TEXT,
+    lawyer_name TEXT,
+    law_firm TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+
+// ============================================================
+// AUTO-GENERATE CASE REFERENCE: AEP/ADM/YYYY/NNN
+// ============================================================
+$year   = date('Y');
+$prefix = 'AEP/ADM/' . $year . '/';
+$stmt   = $pdo->query("SELECT COUNT(*) FROM admin_law_cases WHERE case_reference LIKE '" . $prefix . "%'");
+$count  = (int)$stmt->fetchColumn();
+$auto_reference = $prefix . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // Use auto-reference unless user typed an override
+        $case_ref = !empty(trim($_POST['case_reference_override']))
+                    ? trim($_POST['case_reference_override'])
+                    : $_POST['case_reference'];
+
         $stmt = $pdo->prepare("INSERT INTO admin_law_cases (
             case_reference, status, case_type,
             client_name, client_address, client_email, client_phone,
@@ -33,36 +85,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             :lawyer_name, :law_firm
         )");
         $stmt->execute([
-            ':case_reference'       => $_POST['case_reference'],
-            ':status'               => $_POST['status'],
-            ':case_type'            => $_POST['case_type'],
-            ':client_name'          => $_POST['client_name'],
-            ':client_address'       => $_POST['client_address'],
-            ':client_email'         => $_POST['client_email'],
-            ':client_phone'         => $_POST['client_phone'],
-            ':public_body_name'     => $_POST['public_body_name'],
-            ':public_body_address'  => $_POST['public_body_address'],
-            ':public_body_contact'  => $_POST['public_body_contact'],
-            ':decision_date'        => $_POST['decision_date'],
-            ':decision_description' => $_POST['decision_description'],
-            ':grounds_of_challenge' => $_POST['grounds_of_challenge'],
-            ':judicial_review'      => $_POST['judicial_review'],
-            ':jr_permission_date'   => $_POST['jr_permission_date'],
-            ':jr_hearing_date'      => $_POST['jr_hearing_date'],
-            ':jr_venue'             => $_POST['jr_venue'],
-            ':tribunal_name'        => $_POST['tribunal_name'],
-            ':tribunal_reference'   => $_POST['tribunal_reference'],
-            ':tribunal_hearing_date'=> $_POST['tribunal_hearing_date'],
-            ':human_rights_article' => $_POST['human_rights_article'],
-            ':regulatory_body'      => $_POST['regulatory_body'],
-            ':licence_reference'    => $_POST['licence_reference'],
-            ':legal_basis'          => $_POST['legal_basis'],
-            ':evidence_available'   => $_POST['evidence_available'],
-            ':representations'      => $_POST['representations'],
-            ':settlement_offers'    => $_POST['settlement_offers'],
-            ':outcome'              => $_POST['outcome'],
-            ':lawyer_name'          => $_POST['lawyer_name'],
-            ':law_firm'             => $_POST['law_firm'],
+            ':case_reference'        => $case_ref,
+            ':status'                => $_POST['status'],
+            ':case_type'             => $_POST['case_type'],
+            ':client_name'           => $_POST['client_name'],
+            ':client_address'        => $_POST['client_address'],
+            ':client_email'          => $_POST['client_email'],
+            ':client_phone'          => $_POST['client_phone'],
+            ':public_body_name'      => $_POST['public_body_name'],
+            ':public_body_address'   => $_POST['public_body_address'],
+            ':public_body_contact'   => $_POST['public_body_contact'],
+            ':decision_date'         => $_POST['decision_date'],
+            ':decision_description'  => $_POST['decision_description'],
+            ':grounds_of_challenge'  => $_POST['grounds_of_challenge'],
+            ':judicial_review'       => $_POST['judicial_review'],
+            ':jr_permission_date'    => $_POST['jr_permission_date'],
+            ':jr_hearing_date'       => $_POST['jr_hearing_date'],
+            ':jr_venue'              => $_POST['jr_venue'],
+            ':tribunal_name'         => $_POST['tribunal_name'],
+            ':tribunal_reference'    => $_POST['tribunal_reference'],
+            ':tribunal_hearing_date' => $_POST['tribunal_hearing_date'],
+            ':human_rights_article'  => $_POST['human_rights_article'],
+            ':regulatory_body'       => $_POST['regulatory_body'],
+            ':licence_reference'     => $_POST['licence_reference'],
+            ':legal_basis'           => $_POST['legal_basis'],
+            ':evidence_available'    => $_POST['evidence_available'],
+            ':representations'       => $_POST['representations'],
+            ':settlement_offers'     => $_POST['settlement_offers'],
+            ':outcome'               => $_POST['outcome'],
+            ':lawyer_name'           => $_POST['lawyer_name'],
+            ':law_firm'              => $_POST['law_firm'],
         ]);
         $newId = $pdo->lastInsertId();
         header('Location: admin_law_view.php?id=' . $newId);
@@ -107,6 +159,8 @@ textarea{resize:vertical;min-height:80px}
 .btn-primary{background:#6c3483;color:#fff}
 .btn-primary:hover{background:#5b2c6f}
 .btn-outline{background:#fff;color:#1a3c5e;border:1px solid #1a3c5e}
+.auto-ref-box{background:#eaf4ff;border:1px solid #90caf9;border-radius:4px;padding:10px 14px;font-size:0.95rem;font-weight:bold;color:#1a3c5e;letter-spacing:0.5px}
+.ref-hint{font-size:0.75rem;color:#888;margin-top:5px}
 </style>
 </head>
 <body>
@@ -129,6 +183,7 @@ textarea{resize:vertical;min-height:80px}
     <div class="card">
       <div class="section-title blue">1. CASE DETAILS</div>
       <div class="form-grid">
+
         <div class="form-group"><label>Case Type</label>
           <select name="case_type">
             <option value="">-- Select --</option>
@@ -143,6 +198,7 @@ textarea{resize:vertical;min-height:80px}
             <option>Public Law Other</option>
           </select>
         </div>
+
         <div class="form-group"><label>Status</label>
           <select name="status">
             <option value="draft">Draft</option>
@@ -156,7 +212,21 @@ textarea{resize:vertical;min-height:80px}
             <option value="closed">Closed</option>
           </select>
         </div>
-        <div class="form-group"><label>Case Reference</label><input type="text" name="case_reference" placeholder="e.g. AEP/ADM/2026/001"/></div>
+
+        <!-- AUTO-GENERATED REFERENCE DISPLAY -->
+        <div class="form-group">
+          <label>&#128196; Case Reference (Auto-Generated)</label>
+          <div class="auto-ref-box">&#9989; <?php echo htmlspecialchars($auto_reference); ?></div>
+          <input type="hidden" name="case_reference" value="<?php echo htmlspecialchars($auto_reference); ?>"/>
+          <span class="ref-hint">&#10003; Automatically assigned. Fill the override box below ONLY if you need a different reference.</span>
+        </div>
+
+        <!-- OPTIONAL MANUAL OVERRIDE -->
+        <div class="form-group">
+          <label>Override Reference <small style="color:#aaa;font-weight:normal">(optional &mdash; leave blank to use auto)</small></label>
+          <input type="text" name="case_reference_override" placeholder="e.g. AEP/ADM/2026/007"/>
+        </div>
+
         <div class="form-group"><label>Lawyer Name</label><input type="text" name="lawyer_name" placeholder="Full name"/></div>
         <div class="form-group"><label>Law Firm</label><input type="text" name="law_firm" value="AEP Legal Consultancy"/></div>
       </div>
