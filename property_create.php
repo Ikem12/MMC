@@ -26,11 +26,12 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
 $error   = '';
 $success = '';
 
+require_once __DIR__ . '/csrf.php';
+
 // Pre-fill case type from query string if coming from property_law.php
 $preType = $_GET['type'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_once __DIR__ . '/csrf.php';
     if (!csrf_verify()) { die('Invalid CSRF token.'); }
 
     try {
@@ -111,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-require_once __DIR__ . '/csrf.php';
 $token = csrf_token();
 ?>
 <!doctype html>

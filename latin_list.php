@@ -112,7 +112,7 @@ em{color:#555}
         <td><?php echo substr($m['created_at'] ?? '', 0, 10); ?></td>
         <td class="action-links">
           <a href="latin_maxims_view.php?id=<?php echo $m['id']; ?>" class="link-view">&#128065; View</a>
-          <a href="latin_Print.php?id=<?php echo $m['id']; ?>" class="link-print">&#128424; Print</a>
+          <a href="latin_print.php?id=<?php echo $m['id']; ?>" class="link-print">&#128424; Print</a>
         </td>
       </tr>
     <?php endforeach; ?>
