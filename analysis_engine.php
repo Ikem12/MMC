@@ -378,8 +378,9 @@ if ($case && isset($_POST['run_ai'])) {
     <?php if (!$ai_enabled): ?>
       <div class="ai-disabled">
         <strong>Claude API not configured.</strong><br>
-        To enable AI analysis, create a <code>config.php</code> file in the platform root with your API key:<br><br>
-        <code>&lt;?php return ['claude_api_key' => 'sk-ant-...your-key...'];</code><br><br>
+        To enable AI analysis, create a <code>config.php</code> file in the platform root with your Anthropic <strong>API Key</strong>:<br><br>
+        <code>&lt;?php return ['claude_api_key' => 'sk-ant-...your-api-key...'];</code><br><br>
+        Your API Key is found at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a>.
         Copy <code>config.example.php</code> as a starting point.
       </div>
     <?php elseif ($ai_result && !$ai_result['ok']): ?>
