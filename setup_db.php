@@ -406,26 +406,66 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS employment_cases (
 $tables[] = 'employment_cases';
 
 // ============================================================
-// 15. PROPERTY CASES (RESERVED)
+// 15. PROPERTY CASES
 // ============================================================
 $pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_type TEXT,
     case_title TEXT,
     case_reference TEXT,
+    status TEXT DEFAULT 'draft',
     client_name TEXT,
+    client_email TEXT,
+    client_phone TEXT,
+    client_address TEXT,
     property_address TEXT,
+    property_type TEXT,
     tenure TEXT,
-    transaction_type TEXT,
-    completion_date TEXT,
-    purchase_price TEXT,
-    details TEXT,
+    party_a_name TEXT,
+    party_a_role TEXT,
+    party_a_address TEXT,
+    party_a_contact TEXT,
+    party_b_name TEXT,
+    party_b_role TEXT,
+    party_b_address TEXT,
+    party_b_contact TEXT,
+    rent_amount TEXT,
+    deposit_amount TEXT,
+    tenancy_start TEXT,
+    tenancy_end TEXT,
+    notice_type TEXT,
+    notice_date TEXT,
+    notice_period TEXT,
+    possession_ground TEXT,
+    claim_details TEXT,
+    defence TEXT,
+    repairs_issues TEXT,
+    covenant_breach TEXT,
+    court_name TEXT,
+    court_date TEXT,
+    court_case_number TEXT,
+    applicable_laws TEXT,
+    evidence TEXT,
+    outcome TEXT,
+    notes TEXT,
     lawyer_name TEXT,
     law_firm TEXT,
-    status TEXT DEFAULT 'draft',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 $tables[] = 'property_cases';
+
+// ============================================================
+// 16. LATIN MAXIMS
+// ============================================================
+$pdo->exec("CREATE TABLE IF NOT EXISTS latin_maxims (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    maxim TEXT NOT NULL,
+    meaning TEXT NOT NULL,
+    category TEXT DEFAULT 'General',
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$tables[] = 'latin_maxims';
 
 ?>
 <!doctype html>
@@ -468,7 +508,8 @@ p{color:#666;font-size:0.9rem;margin-bottom:24px}
     <li><span class="tick">✓</span> oil_gas_cases <span class="badge-new">NEW</span></li>
     <li><span class="tick">✓</span> human_rights_cases <span class="badge-new">NEW</span></li>
     <li><span class="tick">✓</span> employment_cases</li>
-    <li><span class="tick">✓</span> property_cases <span class="badge-reserved">RESERVED</span></li>
+    <li><span class="tick">✓</span> property_cases <span class="badge-new">NEW</span></li>
+    <li><span class="tick">✓</span> latin_maxims <span class="badge-new">NEW</span></li>
   </ul>
 
   <a href="dashboard.php" class="btn">→ Go to Dashboard</a>

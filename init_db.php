@@ -171,12 +171,44 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS employment_cases (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
-// ── Property Cases (reserved) ──────────────────────────────────────────────
+// ── Property Cases ─────────────────────────────────────────────────────────
 $pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, case_type TEXT, case_title TEXT,
-  case_reference TEXT, client_name TEXT, property_address TEXT, tenure TEXT,
-  transaction_type TEXT, completion_date TEXT, purchase_price TEXT, details TEXT,
-  lawyer_name TEXT, law_firm TEXT, status TEXT DEFAULT 'draft',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_type TEXT, case_title TEXT, case_reference TEXT, status TEXT DEFAULT 'draft',
+  client_name TEXT, client_email TEXT, client_phone TEXT, client_address TEXT,
+  property_address TEXT, property_type TEXT, tenure TEXT,
+  party_a_name TEXT, party_a_role TEXT, party_a_address TEXT, party_a_contact TEXT,
+  party_b_name TEXT, party_b_role TEXT, party_b_address TEXT, party_b_contact TEXT,
+  rent_amount TEXT, deposit_amount TEXT, tenancy_start TEXT, tenancy_end TEXT,
+  notice_type TEXT, notice_date TEXT, notice_period TEXT,
+  possession_ground TEXT, claim_details TEXT, defence TEXT,
+  repairs_issues TEXT, covenant_breach TEXT,
+  court_name TEXT, court_date TEXT, court_case_number TEXT,
+  applicable_laws TEXT, evidence TEXT, outcome TEXT, notes TEXT,
+  lawyer_name TEXT, law_firm TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+// Migrate existing property_cases tables to the expanded schema
+$_existingCols = array_column($pdo->query("PRAGMA table_info(property_cases)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+foreach (['client_email','client_phone','client_address','property_type',
+          'party_a_name','party_a_role','party_a_address','party_a_contact',
+          'party_b_name','party_b_role','party_b_address','party_b_contact',
+          'rent_amount','deposit_amount','tenancy_start','tenancy_end',
+          'notice_type','notice_date','notice_period','possession_ground',
+          'claim_details','defence','repairs_issues','covenant_breach',
+          'court_name','court_date','court_case_number',
+          'applicable_laws','evidence','outcome','notes','law_firm'] as $_col) {
+    if (!in_array($_col, $_existingCols)) {
+        try { $pdo->exec("ALTER TABLE property_cases ADD COLUMN {$_col} TEXT"); } catch (Exception $e) {}
+    }
+}
+unset($_existingCols, $_col);
+
+// ── Latin Maxims ───────────────────────────────────────────────────────────
+$pdo->exec("CREATE TABLE IF NOT EXISTS latin_maxims (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  maxim TEXT NOT NULL, meaning TEXT NOT NULL, category TEXT DEFAULT 'General',
+  details TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
@@ -196,4 +228,4 @@ if ($stmt->fetchColumn() == 0) {
 }
 
 echo "Database initialised at: {$dbFile}\n";
-echo "All 17 tables created/verified.\n";
+echo "All 19 tables created/verified.\n";

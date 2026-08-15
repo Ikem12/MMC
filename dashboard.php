@@ -5,6 +5,18 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Ensure new tables exist for installations that haven't re-run setup
+$pdo->exec("CREATE TABLE IF NOT EXISTS property_cases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_type TEXT, case_title TEXT, case_reference TEXT, status TEXT DEFAULT 'draft',
+  client_name TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+$pdo->exec("CREATE TABLE IF NOT EXISTS latin_maxims (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  maxim TEXT NOT NULL, meaning TEXT NOT NULL, category TEXT DEFAULT 'General',
+  details TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)");
+
 $counts = [
   'advice'      => $pdo->query("SELECT COUNT(*) FROM legal_advice")->fetchColumn(),
   'letters'     => $pdo->query("SELECT COUNT(*) FROM draft_letters")->fetchColumn(),
@@ -13,6 +25,8 @@ $counts = [
   'appeal'      => $pdo->query("SELECT COUNT(*) FROM grounds_of_appeal")->fetchColumn(),
   'immigration' => $pdo->query("SELECT COUNT(*) FROM immigration_cases")->fetchColumn(),
   'employment'  => $pdo->query("SELECT COUNT(*) FROM employment_cases")->fetchColumn(),
+  'property'    => $pdo->query("SELECT COUNT(*) FROM property_cases")->fetchColumn(),
+  'latin'       => $pdo->query("SELECT COUNT(*) FROM latin_maxims")->fetchColumn(),
 ];
 $total = array_sum($counts);
 
@@ -25,6 +39,7 @@ foreach ([
   "SELECT 'Grounds of Appeal' as module, case_title as title, status, created_at FROM grounds_of_appeal ORDER BY created_at DESC LIMIT 2",
   "SELECT 'Immigration' as module, applicant_name as title, status, created_at FROM immigration_cases ORDER BY created_at DESC LIMIT 2",
   "SELECT 'Employment' as module, claimant_name as title, status, created_at FROM employment_cases ORDER BY created_at DESC LIMIT 2",
+  "SELECT 'Property' as module, COALESCE(case_title, client_name) as title, status, created_at FROM property_cases ORDER BY created_at DESC LIMIT 2",
 ] as $sql) {
   $recent = array_merge($recent, $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
 }
@@ -50,7 +65,7 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
 .hero p{font-size:0.95rem;opacity:0.85}
 .hero .date{font-size:0.85rem;opacity:0.7;margin-top:8px}
 .container{max-width:1200px;margin:0 auto;padding:0 28px 40px}
-.stats-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:30px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;margin-bottom:30px}
 .stat-card{background:#fff;border-radius:10px;padding:18px 12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.07);border-top:4px solid #1a3c5e;transition:transform 0.2s}
 .stat-card:hover{transform:translateY(-3px)}
 .stat-card.advice{border-top-color:#28a745}
@@ -60,11 +75,13 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
 .stat-card.appeal{border-top-color:#dc3545}
 .stat-card.immigration{border-top-color:#003366}
 .stat-card.employment{border-top-color:#c0392b}
+.stat-card.property{border-top-color:#16a085}
+.stat-card.latin{border-top-color:#2c3e50}
 .stat-number{font-size:1.8rem;font-weight:bold;color:#1a3c5e}
 .stat-label{font-size:0.72rem;color:#888;margin-top:4px}
 .stat-icon{font-size:1.3rem;margin-bottom:4px}
 .section-heading{font-size:1rem;font-weight:bold;color:#1a3c5e;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e0e6ef}
-.quick-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:30px}
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin-bottom:30px}
 .quick-btn{background:#fff;border-radius:8px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-decoration:none;color:#1a3c5e;transition:all 0.2s;border:1px solid #e0e6ef;display:block}
 .quick-btn:hover{background:#1a3c5e;color:#fff;transform:translateY(-2px)}
 .quick-btn .q-icon{font-size:1.4rem;margin-bottom:6px}
@@ -120,6 +137,8 @@ tr:hover td{background:#f8f9ff}
     <a href="appeal_list.php">Appeals</a>
     <a href="immigration_list.php">&#127468;&#127463; Immigration</a>
     <a href="employment_list.php">&#128188; Employment</a>
+    <a href="property_law.php">&#127968; Property</a>
+    <a href="latin_list.php">&#9878;&#65039; Latin</a>
     <span class="user">&#128100; <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
     <a href="logout.php">&#128682; Logout</a>
   </div>
@@ -174,6 +193,16 @@ tr:hover td{background:#f8f9ff}
       <div class="stat-number"><?php echo $counts['employment']; ?></div>
       <div class="stat-label">Employment</div>
     </div>
+    <div class="stat-card property">
+      <div class="stat-icon">&#127968;</div>
+      <div class="stat-number"><?php echo $counts['property']; ?></div>
+      <div class="stat-label">Property</div>
+    </div>
+    <div class="stat-card latin">
+      <div class="stat-icon">&#9878;&#65039;</div>
+      <div class="stat-number"><?php echo $counts['latin']; ?></div>
+      <div class="stat-label">Latin Maxims</div>
+    </div>
   </div>
 
   <div class="section-heading">&#9889; Quick Actions</div>
@@ -205,6 +234,14 @@ tr:hover td{background:#f8f9ff}
     <a href="employment_create.php" class="quick-btn">
       <div class="q-icon">&#128188;</div>
       <div class="q-label">Employment Case</div>
+    </a>
+    <a href="property_create.php" class="quick-btn">
+      <div class="q-icon">&#127968;</div>
+      <div class="q-label">Property Case</div>
+    </a>
+    <a href="latin_create.php" class="quick-btn">
+      <div class="q-icon">&#9878;&#65039;</div>
+      <div class="q-label">Add Latin Maxim</div>
     </a>
   </div>
 
@@ -320,13 +357,29 @@ tr:hover td{background:#f8f9ff}
       <div class="mod-header">
         <div class="mod-icon">&#127968;</div>
         <div>
-          <div class="mod-title">Property Law <span class="badge-reserved">COMING SOON</span></div>
-          <div class="mod-count">Reserved</div>
+          <div class="mod-title">Property Law <span class="badge-new">NEW</span></div>
+          <div class="mod-count"><?php echo $counts['property']; ?> records</div>
         </div>
       </div>
-      <div class="mod-desc">Conveyancing, lease agreements, landlord and tenant disputes and property transfers.</div>
+      <div class="mod-desc">Landlord &amp; Tenant disputes, Lodger agreements, and Commercial lease matters.</div>
       <div class="mod-actions">
-        <span class="btn btn-reserved">&#128274; Coming Soon</span>
+        <a href="property_create.php" class="btn btn-primary">&#10133; New</a>
+        <a href="property_list.php" class="btn btn-outline">&#128203; View All</a>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <div class="mod-header">
+        <div class="mod-icon">&#9878;&#65039;</div>
+        <div>
+          <div class="mod-title">Latin Maxims <span class="badge-new">NEW</span></div>
+          <div class="mod-count"><?php echo $counts['latin']; ?> records</div>
+        </div>
+      </div>
+      <div class="mod-desc">Browse and manage the legal Latin maxims and principles library.</div>
+      <div class="mod-actions">
+        <a href="latin_create.php" class="btn btn-primary">&#10133; Add</a>
+        <a href="latin_list.php" class="btn btn-outline">&#128203; View All</a>
       </div>
     </div>
 
@@ -366,7 +419,7 @@ tr:hover td{background:#f8f9ff}
 
 <div class="dash-footer">
   AEP Legal Platform &mdash; &copy; <?php echo date('Y'); ?> AEP Legal Consultancy. All rights reserved.
-  &nbsp;|&nbsp; Database v2.0 &nbsp;|&nbsp; 7 Active Modules
+&nbsp;|&nbsp; Database v4.0 &nbsp;|&nbsp; 9 Active Modules
 </div>
 
 </body>
