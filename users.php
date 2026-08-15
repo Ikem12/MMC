@@ -21,6 +21,29 @@ $csrf = $_SESSION['csrf_token'];
 
 $notice = '';
 
+// Handle POST: create user
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
+    if (!hash_equals($csrf, $_POST['csrf_token'] ?? '')) {
+        $notice = 'Invalid request token.';
+    } else {
+        $newuser = trim($_POST['new_username'] ?? '');
+        $newpass = $_POST['new_password'] ?? '';
+        $newadmin = isset($_POST['new_is_admin']) ? 1 : 0;
+        if ($newuser === '' || strlen($newpass) < 6) {
+            $notice = 'Username required and password must be at least 6 characters.';
+        } else {
+            try {
+                $hash = password_hash($newpass, PASSWORD_DEFAULT);
+                $pdo->prepare("INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?)")
+                    ->execute([$newuser, $hash, $newadmin, date('c')]);
+                $notice = "User '{$newuser}' created successfully.";
+            } catch (Exception $e) {
+                $notice = 'Username already exists. Choose another.';
+            }
+        }
+    }
+}
+
 // Handle POST delete with CSRF check
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     if (!hash_equals($csrf, $_POST['csrf_token'] ?? '')) {
@@ -72,6 +95,24 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <?php if ($notice): ?>
     <div class="notice"><?php echo nl2br(htmlspecialchars($notice)); ?></div>
   <?php endif; ?>
+
+  <h2 style="margin-top:24px;font-size:1rem;color:#1a3c5e">➕ Create New User</h2>
+  <form method="POST" style="margin:10px 0 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <input type="hidden" name="action" value="create"/>
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>"/>
+    <div>
+      <label style="font-size:0.82rem;font-weight:bold;color:#555;display:block;margin-bottom:4px">Username</label>
+      <input type="text" name="new_username" required placeholder="username" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem"/>
+    </div>
+    <div>
+      <label style="font-size:0.82rem;font-weight:bold;color:#555;display:block;margin-bottom:4px">Password (min 6 chars)</label>
+      <input type="password" name="new_password" required placeholder="password" style="padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem"/>
+    </div>
+    <div style="padding-bottom:2px">
+      <label style="font-size:0.82rem;color:#555"><input type="checkbox" name="new_is_admin" value="1" style="width:auto;margin-right:4px"/>Admin</label>
+    </div>
+    <button type="submit" style="padding:8px 16px;background:#28a745;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem">Create User</button>
+  </form>
 
   <?php if (empty($users)): ?>
     <p>No users found.</p>
