@@ -177,6 +177,34 @@ if ($case && isset($_POST['run_ai'])) {
     .btn-secondary:hover{background:#495057}
     .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
 
+    /* ── Sticky Toolbar ─────────────────────────────────── */
+    .toolbar{position:sticky;top:0;z-index:100;background:#1a3c5e;padding:8px 18px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+    .toolbar .tb-btn{padding:6px 14px;border:none;border-radius:4px;font-size:0.82rem;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:background 0.15s,transform 0.1s;white-space:nowrap}
+    .toolbar .tb-btn:active{transform:scale(0.96)}
+    .tb-reset{background:#dc3545;color:#fff}
+    .tb-reset:hover{background:#b02a37}
+    .tb-details{background:#0d6efd;color:#fff}
+    .tb-details:hover{background:#0a58ca}
+    .tb-instructions{background:#198754;color:#fff}
+    .tb-instructions:hover{background:#146c43}
+    .tb-outputs{background:#fd7e14;color:#fff}
+    .tb-outputs:hover{background:#d86309}
+    .tb-summary{background:#6f42c1;color:#fff}
+    .tb-summary:hover{background:#59359a}
+    .tb-drafts{background:#20c997;color:#fff}
+    .tb-drafts:hover{background:#19a47c}
+    .tb-analysis{background:#ffc107;color:#212529}
+    .tb-analysis:hover{background:#e0a800}
+
+    /* ── Instruction Field (hidden by default) ─────────── */
+    .instruction-box{background:#f0fff4;border:1px solid #28a745;border-radius:8px;padding:18px 20px;margin-bottom:20px;display:none}
+    .instruction-box h4{font-size:0.9rem;color:#155724;margin-bottom:10px;font-weight:bold}
+    .instruction-box textarea{width:100%;padding:10px;border:1px solid #b2dfdb;border-radius:4px;font-size:0.88rem;font-family:inherit;resize:vertical;min-height:80px}
+    .instruction-box .ib-actions{display:flex;gap:8px;margin-top:10px}
+    .instruction-box .ib-btn{padding:6px 14px;border:none;border-radius:4px;font-size:0.82rem;cursor:pointer;font-weight:bold}
+    .ib-save{background:#198754;color:#fff}
+    .ib-clear{background:#6c757d;color:#fff}
+
     /* Score */
     .score-section{background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px;text-align:center}
     .score-circle{display:inline-block;width:110px;height:110px;border-radius:50%;line-height:110px;font-size:2rem;font-weight:bold;color:#fff;margin-bottom:12px}
@@ -251,10 +279,21 @@ if ($case && isset($_POST['run_ai'])) {
   <a href="logout.php">Logout</a>
 </nav>
 
+<!-- ── Sticky Toolbar ─────────────────────────────────────────── -->
+<div class="toolbar">
+  <button class="tb-btn tb-reset" onclick="doReset()" title="Clear the current case selection">🔄 Reset</button>
+  <a class="tb-btn tb-details" href="#sec-case-details" onclick="smoothTo(event,'sec-case-details')" title="Jump to Case Details">📁 Case Details</a>
+  <button class="tb-btn tb-instructions" onclick="toggleInstructions()" title="Open instruction / notes field">📝 Instructions</button>
+  <a class="tb-btn tb-outputs" href="#sec-outputs" onclick="smoothTo(event,'sec-outputs')" title="Jump to Analysis Outputs">📊 Outputs</a>
+  <a class="tb-btn tb-summary" href="#sec-summary" onclick="smoothTo(event,'sec-summary')" title="Jump to Case Summary / Score">📋 Summary</a>
+  <a class="tb-btn tb-drafts" href="draft_engine.php<?php echo ($domain && $case_id) ? '?domain='.urlencode($domain).'&id='.$case_id : ''; ?>" title="Open Draft Engine for this case">✍️ Drafts</a>
+  <a class="tb-btn tb-analysis" href="#sec-ai" onclick="smoothTo(event,'sec-ai')" title="Jump to AI Deep Analysis">🤖 Analysis</a>
+</div>
+
 <div class="container">
 
   <!-- Selector -->
-  <div class="selector-card">
+  <div class="selector-card" id="sec-case-details">
     <h2>🔍 Analyse a Case</h2>
     <form method="GET">
       <div class="form-row">
@@ -283,14 +322,24 @@ if ($case && isset($_POST['run_ai'])) {
 
   <?php if ($case): ?>
 
-  <div class="action-bar">
+  <!-- ── Instruction Field ─────────────────────────────────────── -->
+  <div class="instruction-box" id="instruction-box">
+    <h4>📝 Case Instructions / Notes</h4>
+    <textarea id="instruction-text" placeholder="Enter special instructions, notes, or context for this case…"></textarea>
+    <div class="ib-actions">
+      <button class="ib-btn ib-save" onclick="saveInstructions()">💾 Save Note</button>
+      <button class="ib-btn ib-clear" onclick="clearInstructions()">🗑 Clear</button>
+    </div>
+  </div>
+
+  <div class="action-bar" id="sec-outputs">
     <button onclick="window.print()" class="btn btn-print">🖨️ Print Report</button>
     <a href="draft_engine.php?domain=<?php echo $domain; ?>&id=<?php echo $case_id; ?>" class="btn">✍️ Draft Document</a>
     <a href="analysis_engine.php" class="btn btn-secondary">← New Analysis</a>
   </div>
 
   <!-- Case Banner -->
-  <div class="case-banner">
+  <div class="case-banner" id="sec-summary">
     <h3>📁 <?php echo htmlspecialchars($case['title']); ?></h3>
     <p>
       <strong>Domain:</strong> <?php echo $domains[$domain]; ?> &nbsp;|&nbsp;
@@ -373,7 +422,7 @@ if ($case && isset($_POST['run_ai'])) {
   </div>
 
   <!-- Claude AI Deep Analysis -->
-  <div class="ai-section">
+  <div class="ai-section" id="sec-ai">
     <h3>🤖 Claude AI Deep Analysis</h3>
     <?php if (!$ai_enabled): ?>
       <div class="ai-disabled">
@@ -419,5 +468,40 @@ if ($case && isset($_POST['run_ai'])) {
   <?php endif; ?>
 
 </div>
+
+<script>
+function smoothTo(e, id) {
+  var el = document.getElementById(id);
+  if (el) { e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
+}
+function doReset() {
+  if (confirm('Clear current analysis and start fresh?')) {
+    window.location.href = 'analysis_engine.php';
+  }
+}
+function toggleInstructions() {
+  var box = document.getElementById('instruction-box');
+  if (!box) return;
+  var visible = box.style.display === 'block';
+  box.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    box.scrollIntoView({behavior:'smooth', block:'start'});
+    var saved = localStorage.getItem('aep_instructions_<?php echo addslashes($domain.'_'.$case_id); ?>');
+    if (saved) document.getElementById('instruction-text').value = saved;
+  }
+}
+function saveInstructions() {
+  var key = 'aep_instructions_<?php echo addslashes($domain.'_'.$case_id); ?>';
+  var txt = document.getElementById('instruction-text').value;
+  localStorage.setItem(key, txt);
+  var btn = document.querySelector('.ib-save');
+  btn.textContent = '✅ Saved!';
+  setTimeout(function(){ btn.textContent = '💾 Save Note'; }, 1500);
+}
+function clearInstructions() {
+  document.getElementById('instruction-text').value = '';
+  localStorage.removeItem('aep_instructions_<?php echo addslashes($domain.'_'.$case_id); ?>');
+}
+</script>
 </body>
 </html>

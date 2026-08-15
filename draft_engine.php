@@ -88,6 +88,34 @@ $docTypes = [
     .btn-secondary:hover{background:#495057}
     .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
 
+    /* ── Sticky Toolbar ─────────────────────────────────── */
+    .toolbar{position:sticky;top:0;z-index:100;background:#2c3e50;padding:8px 18px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+    .toolbar .tb-btn{padding:6px 14px;border:none;border-radius:4px;font-size:0.82rem;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:background 0.15s,transform 0.1s;white-space:nowrap}
+    .toolbar .tb-btn:active{transform:scale(0.96)}
+    .tb-reset{background:#dc3545;color:#fff}
+    .tb-reset:hover{background:#b02a37}
+    .tb-details{background:#0d6efd;color:#fff}
+    .tb-details:hover{background:#0a58ca}
+    .tb-instructions{background:#198754;color:#fff}
+    .tb-instructions:hover{background:#146c43}
+    .tb-outputs{background:#fd7e14;color:#fff}
+    .tb-outputs:hover{background:#d86309}
+    .tb-summary{background:#6f42c1;color:#fff}
+    .tb-summary:hover{background:#59359a}
+    .tb-drafts{background:#20c997;color:#fff}
+    .tb-drafts:hover{background:#19a47c}
+    .tb-analysis{background:#ffc107;color:#212529}
+    .tb-analysis:hover{background:#e0a800}
+
+    /* ── Instruction Field ─────────────────────────────── */
+    .instruction-box{background:#f0fff4;border:1px solid #28a745;border-radius:8px;padding:18px 20px;margin-bottom:20px;display:none}
+    .instruction-box h4{font-size:0.9rem;color:#155724;margin-bottom:10px;font-weight:bold}
+    .instruction-box textarea{width:100%;padding:10px;border:1px solid #b2dfdb;border-radius:4px;font-size:0.88rem;font-family:inherit;resize:vertical;min-height:80px}
+    .instruction-box .ib-actions{display:flex;gap:8px;margin-top:10px}
+    .instruction-box .ib-btn{padding:6px 14px;border:none;border-radius:4px;font-size:0.82rem;cursor:pointer;font-weight:bold}
+    .ib-save{background:#198754;color:#fff}
+    .ib-clear{background:#6c757d;color:#fff}
+
     /* Document */
     .document{background:#fff;border-radius:8px;padding:50px 60px;box-shadow:0 2px 12px rgba(0,0,0,0.10);margin-bottom:30px}
     .doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:18px;border-bottom:3px solid #2c3e50}
@@ -146,10 +174,21 @@ $docTypes = [
   <a href="logout.php">Logout</a>
 </nav>
 
+<!-- ── Sticky Toolbar ─────────────────────────────────────────── -->
+<div class="toolbar">
+  <button class="tb-btn tb-reset" onclick="doReset()" title="Clear the current case selection">🔄 Reset</button>
+  <a class="tb-btn tb-details" href="#sec-case-details" onclick="smoothTo(event,'sec-case-details')" title="Jump to Case selector / Details">📁 Case Details</a>
+  <button class="tb-btn tb-instructions" onclick="toggleInstructions()" title="Open instruction / notes field">📝 Instructions</button>
+  <a class="tb-btn tb-outputs" href="#sec-outputs" onclick="smoothTo(event,'sec-outputs')" title="Jump to Document Outputs">📄 Outputs</a>
+  <a class="tb-btn tb-summary" href="#sec-summary" onclick="smoothTo(event,'sec-summary')" title="Jump to Case Summary">📋 Summary</a>
+  <a class="tb-btn tb-drafts" href="#sec-draft" onclick="smoothTo(event,'sec-draft')" title="Jump to Document Draft">✍️ Drafts</a>
+  <a class="tb-btn tb-analysis" href="analysis_engine.php<?php echo ($domain && $case_id) ? '?domain='.urlencode($domain).'&id='.$case_id : ''; ?>" title="Open Analysis Engine for this case">🔍 Analysis</a>
+</div>
+
 <div class="container">
 
   <!-- Selector -->
-  <div class="selector-card">
+  <div class="selector-card" id="sec-case-details">
     <h2>✍️ Generate Legal Document</h2>
     <form method="GET">
       <div class="form-row">
@@ -187,7 +226,17 @@ $docTypes = [
 
   <?php if ($case): ?>
 
-  <div class="action-bar">
+  <!-- ── Instruction Field ─────────────────────────────────────── -->
+  <div class="instruction-box" id="instruction-box">
+    <h4>📝 Case Instructions / Notes</h4>
+    <textarea id="instruction-text" placeholder="Enter special instructions, drafting notes, or context for this document…"></textarea>
+    <div class="ib-actions">
+      <button class="ib-btn ib-save" onclick="saveInstructions()">💾 Save Note</button>
+      <button class="ib-btn ib-clear" onclick="clearInstructions()">🗑 Clear</button>
+    </div>
+  </div>
+
+  <div class="action-bar" id="sec-outputs">
     <button onclick="window.print()" class="btn btn-print">🖨️ Print Document</button>
     <?php if ($ai_enabled): ?>
     <form method="POST" style="display:inline" onsubmit="document.getElementById('draft-spin').style.display='inline'">
@@ -202,7 +251,7 @@ $docTypes = [
   </div>
 
   <?php if ($ai_draft): ?>
-    <div class="ai-document">
+    <div class="ai-document" id="sec-draft">
       <h2>🤖 Claude AI — <?php echo $docTypes[$doc_type] ?? 'Legal Document'; ?></h2>
       <?php if (!$ai_draft['ok']): ?>
         <div class="ai-error">⚠️ AI Error: <?php echo htmlspecialchars($ai_draft['error']); ?></div>
@@ -211,9 +260,9 @@ $docTypes = [
       <?php endif; ?>
     </div>
   <?php else: ?>
-  <div class="document">
+  <div class="document" id="sec-draft">
 
-    <div class="doc-header">
+    <div class="doc-header" id="sec-summary">
       <div>
         <div class="firm-name">AEP Legal Platform</div>
         <div class="firm-sub"><?php echo $domains[$domain] ?? 'Legal Division'; ?></div>
