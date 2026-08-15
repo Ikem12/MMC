@@ -86,7 +86,7 @@ body{font-family:Arial,sans-serif;font-size:12px;color:#000;background:#fff;padd
     <div><strong>Case Ref:</strong> <?php echo htmlspecialchars($c['case_reference'] ?: 'N/A'); ?></div>
     <div><strong>Tribunal Ref:</strong> <?php echo htmlspecialchars($c['tribunal_reference'] ?: 'N/A'); ?></div>
     <div><strong>Date Printed:</strong> <?php echo date('d F Y'); ?></div>
-    <div><strong>Status:</strong> <span class="badge badge-<?php echo $c['status']; ?>"><?php echo ucfirst($c['status']); ?></span></div>
+    <div><strong>Status:</strong> <span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars()); ?></span></div>
   </div>
 </div>
 
@@ -107,7 +107,7 @@ body{font-family:Arial,sans-serif;font-size:12px;color:#000;background:#fff;padd
     </div>
     <div class="field">
       <div class="field-label">Status</div>
-      <div class="field-value"><?php echo ucfirst($c['status']); ?></div>
+      <div class="field-value"><?php echo ucfirst(htmlspecialchars()); ?></div>
     </div>
     <div class="field">
       <div class="field-label">Case Reference</div>

@@ -1,5 +1,13 @@
 <?php
+session_set_cookie_params(['httponly' => true, 'secure' => false, 'samesite' => 'Lax']);
 session_start();
+
+// Already logged in
+if (!empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -7,20 +15,24 @@ $error   = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = trim($_POST['password']);
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($username && $password) {
+    if ($username === '' || $password === '') {
+        $error = 'Please fill in all fields.';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password must be at least 6 characters.';
+    } else {
         try {
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-            $stmt->execute([$username, $hash]);
+            $stmt = $pdo->prepare(
+                "INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, 0, ?)"
+            );
+            $stmt->execute([$username, $hash, date('c')]);
             $success = 'Account created! You can now login.';
         } catch (Exception $e) {
             $error = 'Username already exists. Please choose another.';
         }
-    } else {
-        $error = 'Please fill in all fields.';
     }
 }
 ?>

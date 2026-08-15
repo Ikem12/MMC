@@ -5,9 +5,13 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Handle delete
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM witness_statements WHERE id = ?")->execute([$_GET['delete']]);
+require_once __DIR__ . '/csrf.php';
+csrf_token(); // ensure token exists
+
+// Handle delete (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!csrf_verify()) { die('Invalid CSRF token.'); }
+    $pdo->prepare("DELETE FROM witness_statements WHERE id = ?")->execute([(int)$_POST['delete_id']]);
     header('Location: witness_list.php');
     exit;
 }

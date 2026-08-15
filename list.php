@@ -1,7 +1,12 @@
 <?php
 // FILE: list.php
 // List cases for AEP Legal Platform
+session_set_cookie_params(['httponly' => true, 'secure' => false, 'samesite' => 'Lax']);
 session_start();
+if (empty($_SESSION['user_id'])) {
+    header('Location: login.php?return=' . urlencode($_SERVER['REQUEST_URI'] ?? '/list.php'));
+    exit;
+}
 
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

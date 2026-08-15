@@ -95,7 +95,11 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
   <div class="btn-row">
     <a href="employment_list.php" class="btn btn-back">← Back to List</a>
     <a href="employment_print.php?id=<?php echo $c['id']; ?>" class="btn btn-print">🖨 Print Case</a>
-    <a href="employment_list.php?delete=<?php echo $c['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this case?')">🗑 Delete</a>
+    <form method="POST" action="employment_list.php" style="display:inline" onsubmit="return confirm('Delete this case?')">
+    <?php require_once __DIR__ . '/csrf.php'; echo csrf_input(); ?>
+    <input type="hidden" name="delete_id" value="<?php echo (int)$c['id']; ?>"/>
+    <button type="submit" class="btn btn-delete">🗑 Delete</button>
+  </form>
   </div>
 
   <!-- CASE DETAILS -->
@@ -108,7 +112,7 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
       </div>
       <div class="info-item">
         <div class="info-label">Status</div>
-        <div class="info-value"><span class="badge badge-<?php echo $c['status']; ?>"><?php echo ucfirst($c['status']); ?></span></div>
+        <div class="info-value"><span class="badge badge-<?php echo htmlspecialchars($c['status']); ?>"><?php echo ucfirst(htmlspecialchars($c['status'])); ?></span></div>
       </div>
       <div class="info-item">
         <div class="info-label">Case Reference</div>
@@ -124,5 +128,80 @@ body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
       </div>
       <div class="info-item">
         <div class="info-label">Law Firm</div>
-        <div class="info-value"><?php echo htmlspecialchars($c['law_firm'] ?: '—');*
-
+        <div class="info-value"><?php echo htmlspecialchars($c['law_firm'] ?: '—'); ?></div>
+      </div>
+    </div><!-- /.info-grid -->
+  </div><!-- /.card CASE DETAILS -->
+
+  <!-- PARTIES -->
+  <div class="card">
+    <div class="section-title red">2. PARTIES</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Claimant Name</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['claimant_name'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Respondent Name</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['respondent_name'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Claimant Email</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['claimant_email'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Claimant Phone</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['claimant_phone'] ?: '—'); ?></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYMENT DETAILS -->
+  <div class="card">
+    <div class="section-title orange">3. EMPLOYMENT DETAILS</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Job Title</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['job_title'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Salary</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['salary'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Employment Start</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['employment_start'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Employment End</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['employment_end'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Tribunal</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['tribunal'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Case Number</div>
+        <div class="info-value"><?php echo htmlspecialchars($c['case_number'] ?: '—'); ?></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLAIM DETAILS -->
+  <div class="card">
+    <div class="section-title purple">4. CLAIM DETAILS</div>
+    <div class="info-grid">
+      <div class="info-item full">
+        <div class="info-label">Claim Details</div>
+        <div class="info-value long"><?php echo htmlspecialchars($c['claim_details'] ?: '—'); ?></div>
+      </div>
+      <div class="info-item full">
+        <div class="info-label">Remedy Sought</div>
+        <div class="info-value long"><?php echo htmlspecialchars($c['remedy_sought'] ?: '—'); ?></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.container -->
+</body>
+</html>

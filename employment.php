@@ -112,7 +112,7 @@ tr:hover td{background:#f9f9f9}
         <td><strong><?php echo htmlspecialchars($c['claimant_name']); ?></strong></td>
         <td><?php echo htmlspecialchars($c['respondent_name'] ?: 'N/A'); ?></td>
         <td><?php echo htmlspecialchars($c['case_type'] ?: 'N/A'); ?></td>
-        <td><span class="badge badge-<?php echo $c['status']; ?>"><?php echo ucfirst($c['status']); ?></span></td>
+        <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars()); ?></span></td>
         <td><?php echo $c['hearing_date'] ? date('d/m/Y', strtotime($c['hearing_date'])) : 'TBC'; ?></td>
         <td class="action-links">
           <a href="employment_view.php?id=<?php echo $c['id']; ?>" class="link-view">&#128065; View</a>

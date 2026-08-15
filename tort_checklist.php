@@ -81,7 +81,7 @@ tr:hover td{background:#f9f9f9}
         <td><?php echo htmlspecialchars($c['defendant_name']?:'N/A');?></td>
         <td><?php echo htmlspecialchars($c['case_type']?:'N/A');?></td>
         <td><?php echo htmlspecialchars($c['damages_claimed']?:'N/A');?></td>
-        <td><span class="badge badge-<?php echo $c['status'];?>"><?php echo ucfirst($c['status']);?></span></td>
+        <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars());?></span></td>
         <td class="action-links"><a href="tort_view.php?id=<?php echo $c['id'];?>" class="link-view">&#128065; View</a><a href="tort_print.php?id=<?php echo $c['id'];?>" class="link-print">&#128424; Print</a></td>
       </tr>
     <?php endforeach;?>

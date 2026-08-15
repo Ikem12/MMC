@@ -28,7 +28,7 @@ $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php else:?>
 <table><thead><tr><th>#</th><th>Case Ref</th><th>Client</th><th>Company</th><th>Co. No.</th><th>Case Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($cases as $c):?>
-<tr><td><?php echo $c['id'];?></td><td><?php echo htmlspecialchars($c['case_reference']?:'N/A');?></td><td><strong><?php echo htmlspecialchars($c['client_name']);?></strong></td><td><?php echo htmlspecialchars($c['company_name']?:'N/A');?></td><td><?php echo htmlspecialchars($c['company_number']?:'N/A');?></td><td><?php echo htmlspecialchars($c['case_type']?:'N/A');?></td><td><span class="badge badge-<?php echo $c['status'];?>"><?php echo ucfirst($c['status']);?></span></td><td class="action-links"><a href="company_view.php?id=<?php echo $c['id'];?>" class="link-view">&#128065; View</a><a href="company_print.php?id=<?php echo $c['id'];?>" class="link-print">&#128424; Print</a></td></tr>
+<tr><td><?php echo $c['id'];?></td><td><?php echo htmlspecialchars($c['case_reference']?:'N/A');?></td><td><strong><?php echo htmlspecialchars($c['client_name']);?></strong></td><td><?php echo htmlspecialchars($c['company_name']?:'N/A');?></td><td><?php echo htmlspecialchars($c['company_number']?:'N/A');?></td><td><?php echo htmlspecialchars($c['case_type']?:'N/A');?></td><td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars());?></span></td><td class="action-links"><a href="company_view.php?id=<?php echo $c['id'];?>" class="link-view">&#128065; View</a><a href="company_print.php?id=<?php echo $c['id'];?>" class="link-print">&#128424; Print</a></td></tr>
 <?php endforeach;?>
 </tbody></table><?php endif;?>
 </div></body></html>

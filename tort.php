@@ -109,8 +109,8 @@ $cases = $pdo->query("SELECT * FROM tort_cases ORDER BY created_at DESC")->fetch
           <td><?php echo htmlspecialchars($c['incident_date'] ?? '—'); ?></td>
           <td><?php echo htmlspecialchars($c['damage'] ?? '—'); ?></td>
           <td>
-            <span class="badge badge-<?php echo $c['status']; ?>">
-              <?php echo ucfirst($c['status']); ?>
+            <span class="badge badge-<?php echo htmlspecialchars(); ?>">
+              <?php echo ucfirst(htmlspecialchars()); ?>
             </span>
           </td>
           <td><?php echo substr($c['created_at'], 0, 10); ?></td>

@@ -106,5 +106,63 @@ body{font-family:'Times New Roman',serif;background:#fff;color:#000;font-size:12
 
   <!-- COURT HEADING -->
   <div class="court-heading">
-    <div class="court-name"><?php echo htmlspecialchars($r['court'] ?: 'IN THE HIGH*
-
+    <div class="court-name"><?php echo htmlspecialchars($r['court'] ?: 'IN THE HIGH COURT OF JUSTICE'); ?></div>
+    <div class="court-title"><?php echo htmlspecialchars($r['case_title'] ?? ''); ?></div>
+  </div>
+
+  <!-- CASE REFERENCE -->
+  <?php if (!empty($r['case_number'])): ?>
+  <div style="text-align:right;margin-bottom:12px;font-size:10pt">
+    Case No: <strong><?php echo htmlspecialchars($r['case_number']); ?></strong>
+  </div>
+  <?php endif; ?>
+
+  <!-- INTRODUCTION -->
+  <?php if (!empty($r['introduction'])): ?>
+  <h2>A. Introduction</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['introduction'])); ?></p>
+  <?php endif; ?>
+
+  <!-- FACTS -->
+  <?php if (!empty($r['facts_summary'])): ?>
+  <h2>B. Summary of Facts</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['facts_summary'])); ?></p>
+  <?php endif; ?>
+
+  <!-- ISSUES -->
+  <?php if (!empty($r['issues'])): ?>
+  <h2>C. Issues for Determination</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['issues'])); ?></p>
+  <?php endif; ?>
+
+  <!-- SUBMISSIONS -->
+  <?php if (!empty($r['submissions'])): ?>
+  <h2>D. Submissions</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['submissions'])); ?></p>
+  <?php endif; ?>
+
+  <!-- AUTHORITIES -->
+  <?php if (!empty($r['authorities'])): ?>
+  <h2>E. Authorities</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['authorities'])); ?></p>
+  <?php endif; ?>
+
+  <!-- CONCLUSION -->
+  <?php if (!empty($r['conclusion'])): ?>
+  <h2>F. Conclusion</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['conclusion'])); ?></p>
+  <?php endif; ?>
+
+  <!-- RELIEF SOUGHT -->
+  <?php if (!empty($r['relief_sought'])): ?>
+  <h2>G. Relief Sought</h2>
+  <p><?php echo nl2br(htmlspecialchars($r['relief_sought'])); ?></p>
+  <?php endif; ?>
+
+  <div style="margin-top:40px;font-size:9pt;color:#666">
+    Submitted by: <?php echo htmlspecialchars($r['lawyer_name'] ?? ''); ?><br/>
+    Date: <?php echo date('d F Y'); ?>
+  </div>
+
+</body>
+</html>

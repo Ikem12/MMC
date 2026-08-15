@@ -82,7 +82,7 @@ tr:hover td{background:#f9f9f9}
         <td><?php echo htmlspecialchars(substr($c['charges']?:'N/A',0,40));?>...</td>
         <td><?php echo htmlspecialchars($c['plea']?:'N/A');?></td>
         <td><?php echo $c['trial_date']?date('d/m/Y',strtotime($c['trial_date'])):'TBC';?></td>
-        <td><span class="badge badge-<?php echo $c['status'];?>"><?php echo ucfirst($c['status']);?></span></td>
+        <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars());?></span></td>
         <td class="action-links"><a href="criminal_view.php?id=<?php echo $c['id'];?>" class="link-view">&#128065; View</a><a href="criminal_print.php?id=<?php echo $c['id'];?>" class="link-print">&#128424; Print</a></td>
       </tr>
     <?php endforeach;?>

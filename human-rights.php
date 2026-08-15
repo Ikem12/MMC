@@ -102,15 +102,15 @@ $cases = $pdo->query("SELECT * FROM human_rights_cases ORDER BY created_at DESC"
         <?php foreach ($cases as $c): ?>
         <tr>
           <td><?php echo $c['id']; ?></td>
-          <td><?php echo htmlspecialchars($c['title']); ?></td>
-          <td><?php echo htmlspecialchars($c['right_violated'] ?? '—'); ?></td>
-          <td><?php echo htmlspecialchars($c['claimant'] ?? '—'); ?></td>
+          <td><?php echo htmlspecialchars($c['case_title'] ?? $c['title'] ?? '—'); ?></td>
+          <td><?php echo htmlspecialchars($c['rights_violated'] ?? $c['right_violated'] ?? '—'); ?></td>
+          <td><?php echo htmlspecialchars($c['applicant_name'] ?? $c['claimant'] ?? '—'); ?></td>
           <td><?php echo htmlspecialchars($c['respondent'] ?? '—'); ?></td>
-          <td><?php echo htmlspecialchars($c['article_section'] ?? '—'); ?></td>
-          <td><?php echo htmlspecialchars($c['remedy'] ?? '—'); ?></td>
+          <td><?php echo htmlspecialchars($c['article_relied_on'] ?? $c['article_section'] ?? '—'); ?></td>
+          <td><?php echo htmlspecialchars($c['relief_sought'] ?? $c['remedy'] ?? '—'); ?></td>
           <td>
-            <span class="badge badge-<?php echo $c['status']; ?>">
-              <?php echo ucfirst($c['status']); ?>
+            <span class="badge badge-<?php echo htmlspecialchars($c['status']); ?>">
+              <?php echo ucfirst(htmlspecialchars($c['status'])); ?>
             </span>
           </td>
           <td><?php echo substr($c['created_at'], 0, 10); ?></td>

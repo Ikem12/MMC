@@ -81,7 +81,7 @@ tr:hover td{background:#f9f9f9}
         <td><?php echo htmlspecialchars($c['client_nationality']?:'N/A');?></td>
         <td><?php echo htmlspecialchars($c['case_type']?:'N/A');?></td>
         <td><?php echo $c['client_visa_expiry']?date('d/m/Y',strtotime($c['client_visa_expiry'])):'N/A';?></td>
-        <td><span class="badge badge-<?php echo $c['status'];?>"><?php echo ucfirst($c['status']);?></span></td>
+        <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars());?></span></td>
         <td class="action-links"><a href="immigration_view.php?id=<?php echo $c['id'];?>" class="link-view">&#128065; View</a><a href="immigration_print.php?id=<?php echo $c['id'];?>" class="link-print">&#128424; Print</a></td>
       </tr>
     <?php endforeach;?>

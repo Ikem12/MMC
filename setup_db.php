@@ -1,4 +1,12 @@
 <?php
+session_set_cookie_params(['httponly' => true, 'secure' => false, 'samesite' => 'Lax']);
+session_start();
+if (empty($_SESSION['user_id']) || empty($_SESSION['is_admin'])) {
+    http_response_code(403);
+    echo "403 Forbidden — admin access required. <a href='login.php'>Login</a>";
+    exit;
+}
+
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -10,9 +18,10 @@ $tables = [];
 $pdo->exec("CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
     full_name TEXT,
     email TEXT,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     role TEXT DEFAULT 'user',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");

@@ -91,7 +91,7 @@ tr:hover td{background:#f9f9f9}
         <td><strong><?php echo htmlspecialchars($c['client_name']); ?></strong></td>
         <td><?php echo htmlspecialchars($c['public_body_name'] ?: 'N/A'); ?></td>
         <td><?php echo htmlspecialchars($c['case_type'] ?: 'N/A'); ?></td>
-        <td><span class="badge badge-<?php echo $c['status']; ?>"><?php echo ucfirst($c['status']); ?></span></td>
+        <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars()); ?></span></td>
         <td><?php echo $c['jr_hearing_date'] ? date('d/m/Y', strtotime($c['jr_hearing_date'])) : 'N/A'; ?></td>
         <td class="action-links">
           <a href="admin_law_view.php?id=<?php echo $c['id']; ?>" class="link-view">&#128065; View</a>

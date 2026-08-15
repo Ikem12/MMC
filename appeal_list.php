@@ -5,9 +5,13 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Handle delete
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM grounds_of_appeal WHERE id = ?")->execute([$_GET['delete']]);
+require_once __DIR__ . '/csrf.php';
+csrf_token(); // ensure token exists
+
+// Handle delete (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!csrf_verify()) { die('Invalid CSRF token.'); }
+    $pdo->prepare("DELETE FROM grounds_of_appeal WHERE id = ?")->execute([(int)$_POST['delete_id']]);
     header('Location: appeal_list.php');
     exit;
 }
@@ -154,8 +158,11 @@ tr:hover td{background:#f8f9ff}
               <div class="action-btns">
                 <a href="appeal_view.php?id=<?php echo $r['id']; ?>" class="btn btn-info">👁 View</a>
                 <a href="appeal_print.php?id=<?php echo $r['id']; ?>" class="btn btn-primary" target="_blank">🖨 Print</a>
-                <a href="appeal_list.php?delete=<?php echo $r['id']; ?>" class="btn btn-danger"
-                   onclick="return confirm('Delete this appeal?')">🗑 Delete</a>
+                <form method="POST" style="display:inline" onsubmit="return confirm('Delete this appeal?')">
+                  <?php echo csrf_input(); ?>
+                  <input type="hidden" name="delete_id" value="<?php echo (int)$r['id']; ?>"/>
+                  <button type="submit" class="btn btn-danger">🗑 Delete</button>
+                </form>
               </div>
             </td>
           </tr>

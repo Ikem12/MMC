@@ -5,9 +5,13 @@ if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Handle delete
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM employment_cases WHERE id = ?")->execute([$_GET['delete']]);
+require_once __DIR__ . '/csrf.php';
+csrf_token(); // ensure token exists
+
+// Handle delete (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!csrf_verify()) { die('Invalid CSRF token.'); }
+    $pdo->prepare("DELETE FROM employment_cases WHERE id = ?")->execute([(int)$_POST['delete_id']]);
     header('Location: employment_list.php');
     exit;
 }
@@ -179,13 +183,17 @@ tr:hover td{background:#fef9f9}
             <td><?php echo htmlspecialchars($c['respondent_name']); ?></td>
             <td><?php echo htmlspecialchars($c['case_type']); ?></td>
             <td><?php echo $c['hearing_date'] ? date('d M Y', strtotime($c['hearing_date'])) : '—'; ?></td>
-            <td><span class="badge badge-<?php echo $c['status']; ?>"><?php echo ucfirst($c['status']); ?></span></td>
+            <td><span class="badge badge-<?php echo htmlspecialchars(); ?>"><?php echo ucfirst(htmlspecialchars()); ?></span></td>
             <td><?php echo date('d M Y', strtotime($c['created_at'])); ?></td>
             <td>
               <div class="actions">
                 <a href="employment_view.php?id=<?php echo $c['id']; ?>" class="btn btn-sm btn-view">👁 View</a>
                 <a href="employment_print.php?id=<?php echo $c['id']; ?>" class="btn btn-sm" style="background:#27ae60;color:#fff">🖨 Print</a>
-                <a href="employment_list.php?delete=<?php echo $c['id']; ?>" class="btn btn-sm btn-delete" onclick="return confirm('Delete this case?')">🗑 Delete</a>
+                <form method="POST" style="display:inline" onsubmit="return confirm('Delete this case?')">
+                  <?php echo csrf_input(); ?>
+                  <input type="hidden" name="delete_id" value="<?php echo (int)$c['id']; ?>"/>
+                  <button type="submit" class="btn btn-danger">🗑 Delete</button>
+                </form>
               </div>
             </td>
           </tr>

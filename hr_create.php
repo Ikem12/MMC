@@ -29,22 +29,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Case title is required.';
     } else {
         $stmt = $pdo->prepare("INSERT INTO human_rights_cases
-            (title, right_violated, claimant, respondent, article_section,
-             violation_date, remedy, summary, grounds, status, created_by)
-            VALUES (:title,:right_violated,:claimant,:respondent,:article_section,
-                    :violation_date,:remedy,:summary,:grounds,:status,:created_by)");
+            (case_title, rights_violated, applicant_name, respondent, article_relied_on,
+             incident_date, relief_sought, background, notes, status, lawyer_name, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
         $stmt->execute([
-            ':title'           => $title,
-            ':right_violated'  => $right_violated,
-            ':claimant'        => $claimant,
-            ':respondent'      => $respondent,
-            ':article_section' => $article_section,
-            ':violation_date'  => $violation_date,
-            ':remedy'          => $remedy,
-            ':summary'         => $summary,
-            ':grounds'         => $grounds,
-            ':status'          => $status,
-            ':created_by'      => $_SESSION['username'] ?? 'unknown',
+            $title,
+            $right_violated,
+            $claimant,
+            $respondent,
+            $article_section,
+            $violation_date,
+            $remedy,
+            $summary,
+            $grounds,
+            $status,
+            $_SESSION['username'] ?? 'unknown',
+            date('Y-m-d H:i:s'),
         ]);
         $success = 'Case created successfully!';
     }
