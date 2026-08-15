@@ -7,6 +7,8 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
+require_once __DIR__ . '/claude_api.php';
+
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -25,8 +27,8 @@ $tables = [
     'oil_gas'      => 'oil_gas_cases',
 ];
 
-$domain  = $_GET['domain'] ?? '';
-$case_id = (int)($_GET['id'] ?? 0);
+$domain  = $_REQUEST['domain'] ?? '';
+$case_id = (int)($_REQUEST['id'] ?? 0);
 $case    = null;
 
 if ($domain && $case_id && isset($tables[$domain])) {
@@ -135,6 +137,14 @@ if ($case) {
 
     $score = min($score, 100);
 }
+
+// ── Claude AI Deep Analysis (on demand) ─────────────────────────
+$ai_result = null;
+$ai_enabled = claude_api_key() !== null;
+if ($case && isset($_POST['run_ai'])) {
+    $prompt = claude_analysis_prompt($domain, $case);
+    $ai_result = claude_ask($prompt['system'], $prompt['user']);
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -193,6 +203,17 @@ if ($case) {
     .risks ul li::before{content:'⚠️'}
     .recommendations ul li::before{content:'💡'}
     .empty-item{font-size:0.85rem;color:#aaa;font-style:italic}
+
+    /* Claude AI section */
+    .ai-section{background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:20px;border-top:4px solid #7c3aed}
+    .ai-section h3{font-size:1rem;color:#7c3aed;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #ede9fe;display:flex;align-items:center;gap:8px}
+    .ai-body{font-size:0.91rem;line-height:1.85;color:#333;white-space:pre-wrap}
+    .ai-body strong{color:#1a1a2e}
+    .btn-ai{background:#7c3aed;color:#fff;border:none;padding:10px 22px;border-radius:5px;font-size:0.9rem;cursor:pointer;font-family:inherit}
+    .btn-ai:hover{background:#6d28d9}
+    .ai-disabled{background:#f3f0ff;border-radius:6px;padding:14px 18px;font-size:0.88rem;color:#7c3aed;border:1px dashed #c4b5fd}
+    .ai-error{background:#fef2f2;border-radius:6px;padding:14px 18px;font-size:0.88rem;color:#dc2626;border:1px solid #fecaca}
+    .ai-spinner{display:none;font-size:0.88rem;color:#7c3aed;margin-left:10px}
 
     /* Case summary */
     .case-banner{background:#eef4fb;border-radius:6px;padding:14px 18px;margin-bottom:20px;border:1px solid #c8dff0}
@@ -349,6 +370,43 @@ if ($case) {
       </ul>
     </div>
 
+  </div>
+
+  <!-- Claude AI Deep Analysis -->
+  <div class="ai-section">
+    <h3>🤖 Claude AI Deep Analysis</h3>
+    <?php if (!$ai_enabled): ?>
+      <div class="ai-disabled">
+        <strong>Claude API not configured.</strong><br>
+        To enable AI analysis, create a <code>config.php</code> file in the platform root with your API key:<br><br>
+        <code>&lt;?php return ['claude_api_key' => 'sk-ant-...your-key...'];</code><br><br>
+        Copy <code>config.example.php</code> as a starting point.
+      </div>
+    <?php elseif ($ai_result && !$ai_result['ok']): ?>
+      <div class="ai-error">⚠️ AI Error: <?php echo htmlspecialchars($ai_result['error']); ?></div>
+      <form method="POST" style="margin-top:14px">
+        <input type="hidden" name="domain" value="<?php echo htmlspecialchars($domain); ?>">
+        <input type="hidden" name="id" value="<?php echo $case_id; ?>">
+        <button type="submit" name="run_ai" value="1" class="btn-ai">🔄 Retry AI Analysis</button>
+      </form>
+    <?php elseif ($ai_result && $ai_result['ok']): ?>
+      <div class="ai-body"><?php echo nl2br(htmlspecialchars($ai_result['text'])); ?></div>
+      <form method="POST" style="margin-top:16px">
+        <input type="hidden" name="domain" value="<?php echo htmlspecialchars($domain); ?>">
+        <input type="hidden" name="id" value="<?php echo $case_id; ?>">
+        <button type="submit" name="run_ai" value="1" class="btn-ai">🔄 Re-run AI Analysis</button>
+      </form>
+    <?php else: ?>
+      <p style="font-size:0.9rem;color:#555;margin-bottom:14px">
+        Click the button below to send this case to Claude for a deeper legal analysis — including relevant statutes, case law, and strategic advice.
+      </p>
+      <form method="POST" onsubmit="document.getElementById('ai-spin').style.display='inline'">
+        <input type="hidden" name="domain" value="<?php echo htmlspecialchars($domain); ?>">
+        <input type="hidden" name="id" value="<?php echo $case_id; ?>">
+        <button type="submit" name="run_ai" value="1" class="btn-ai">🤖 Run AI Deep Analysis</button>
+        <span id="ai-spin" class="ai-spinner">Analysing… (this may take 10–20 seconds)</span>
+      </form>
+    <?php endif; ?>
   </div>
 
   <?php else: ?>

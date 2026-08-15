@@ -1,3 +1,4 @@
 data/aep.sqlite
 data/*.sqlite
 php.ini
+config.php

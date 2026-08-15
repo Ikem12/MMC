@@ -7,6 +7,8 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
+require_once __DIR__ . '/claude_api.php';
+
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -25,9 +27,10 @@ $tables = [
     'oil_gas'      => 'oil_gas_cases',
 ];
 
-$domain   = $_GET['domain'] ?? '';
-$case_id  = (int)($_GET['id'] ?? 0);
-$doc_type = $_GET['doc_type'] ?? 'demand_letter';
+$domain   = $_REQUEST['domain'] ?? '';
+$case_id  = (int)($_REQUEST['id'] ?? 0);
+$doc_type = $_REQUEST['doc_type'] ?? 'demand_letter';
+$use_ai   = isset($_POST['use_ai']);
 $case     = null;
 
 if ($domain && $case_id && isset($tables[$domain])) {
@@ -35,6 +38,14 @@ if ($domain && $case_id && isset($tables[$domain])) {
     $stmt  = $pdo->prepare("SELECT * FROM {$table} WHERE id = :id");
     $stmt->execute([':id' => $case_id]);
     $case = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+// Claude AI draft (on demand)
+$ai_draft = null;
+$ai_enabled = claude_api_key() !== null;
+if ($case && $use_ai) {
+    $prompt = claude_draft_prompt($domain, $doc_type, $case);
+    $ai_draft = claude_ask($prompt['system'], $prompt['user'], 'claude-3-5-sonnet-20241022', 2000);
 }
 
 $docTypes = [
@@ -102,6 +113,14 @@ $docTypes = [
     .domain-card:hover{border-color:#2c3e50;background:#eef0f3}
     .domain-card .icon{font-size:1.8rem;margin-bottom:6px}
     .domain-card .name{font-size:0.85rem;font-weight:bold}
+    .btn-ai{background:#7c3aed;color:#fff;border:none;padding:10px 22px;border-radius:5px;font-size:0.9rem;cursor:pointer;font-family:inherit}
+    .btn-ai:hover{background:#6d28d9}
+    .ai-document{background:#fff;border-radius:8px;padding:50px 60px;box-shadow:0 2px 12px rgba(0,0,0,0.10);margin-bottom:30px;border-top:4px solid #7c3aed}
+    .ai-document h2{font-size:1rem;color:#7c3aed;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #ede9fe}
+    .ai-body{font-size:0.92rem;line-height:1.9;color:#333;white-space:pre-wrap}
+    .ai-error{background:#fef2f2;border-radius:6px;padding:14px 18px;font-size:0.88rem;color:#dc2626;border:1px solid #fecaca;margin-bottom:14px}
+    .ai-disabled{background:#f3f0ff;border-radius:6px;padding:14px 18px;font-size:0.88rem;color:#7c3aed;border:1px dashed #c4b5fd;margin-bottom:14px}
+    .ai-spinner{display:none;font-size:0.88rem;color:#7c3aed;margin-left:10px}
 
     @media print {
       header,nav,.selector-card,.action-bar{display:none!important}
@@ -170,9 +189,28 @@ $docTypes = [
 
   <div class="action-bar">
     <button onclick="window.print()" class="btn btn-print">🖨️ Print Document</button>
+    <?php if ($ai_enabled): ?>
+    <form method="POST" style="display:inline" onsubmit="document.getElementById('draft-spin').style.display='inline'">
+      <input type="hidden" name="domain" value="<?php echo htmlspecialchars($domain); ?>">
+      <input type="hidden" name="id" value="<?php echo $case_id; ?>">
+      <input type="hidden" name="doc_type" value="<?php echo htmlspecialchars($doc_type); ?>">
+      <button type="submit" name="use_ai" value="1" class="btn-ai">🤖 AI-Generated Draft</button>
+      <span id="draft-spin" class="ai-spinner">Generating… (10–20 seconds)</span>
+    </form>
+    <?php endif; ?>
     <a href="draft_engine.php" class="btn btn-secondary">← New Document</a>
   </div>
 
+  <?php if ($ai_draft): ?>
+    <div class="ai-document">
+      <h2>🤖 Claude AI — <?php echo $docTypes[$doc_type] ?? 'Legal Document'; ?></h2>
+      <?php if (!$ai_draft['ok']): ?>
+        <div class="ai-error">⚠️ AI Error: <?php echo htmlspecialchars($ai_draft['error']); ?></div>
+      <?php else: ?>
+        <div class="ai-body"><?php echo nl2br(htmlspecialchars($ai_draft['text'])); ?></div>
+      <?php endif; ?>
+    </div>
+  <?php else: ?>
   <div class="document">
 
     <div class="doc-header">
@@ -275,6 +313,7 @@ $docTypes = [
     </div>
 
   </div>
+  <?php endif; // end ai_draft else (template document) ?>
 
   <?php else: ?>
     <div class="no-doc">
