@@ -1,17 +1,46 @@
 <?php
+session_set_cookie_params([
+    'httponly' => true,
+    'secure'   => false,
+    'samesite' => 'Lax'
+]);
 session_start();
-require_once 'auth.php';
+
+if (!empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $result = loginUser($username, $password);
-    if ($result === true) {
-        header('Location: dashboard.php');
-        exit;
+
+    if ($username !== '' && $password !== '') {
+        $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $stmt = $pdo->prepare("SELECT id, username, password_hash, is_admin FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password_hash'])) {
+            $_SESSION['user_id']  = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['is_admin'] = (bool) $user['is_admin'];
+
+            $return = $_GET['return'] ?? 'dashboard.php';
+            // Guard against open-redirect
+            if (strpos($return, 'http://') === 0 || strpos($return, 'https://') === 0) {
+                $return = 'dashboard.php';
+            }
+            header('Location: ' . $return);
+            exit;
+        } else {
+            $error = 'Invalid username or password.';
+        }
     } else {
-        $error = $result;
+        $error = 'Please enter your username and password.';
     }
 }
 ?>
