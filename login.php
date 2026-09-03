@@ -1,17 +1,37 @@
 <?php
 session_start();
-require_once 'auth.php';
+require_once __DIR__ . '/includes/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 $error = '';
+if (!empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $result = loginUser($username, $password);
-    if ($result === true) {
-        header('Location: dashboard.php');
-        exit;
+    if ($username === '' || $password === '') {
+        $error = 'Enter your username and password.';
     } else {
-        $error = $result;
+        $pdo = aep_db();
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+        if ($user && password_verify($password, $user['password_hash'])) {
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = (int) $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['is_admin'] = (int) $user['is_admin'];
+            $return = aep_safe_return_url($_GET['return'] ?? null);
+            if ($return === '/') {
+                $return = '/dashboard.php';
+            }
+            header('Location: ' . $return);
+            exit;
+        } else {
+            $error = 'Invalid username or password.';
+        }
     }
 }
 ?>
