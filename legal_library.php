@@ -1,39 +1,5 @@
 <?php
-function aep_db(): PDO
-{
-    static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
-
-    $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    return $pdo;
-}
-
-function aep_table_exists(PDO $pdo, string $table): bool
-{
-    $stmt = $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table");
-    $stmt->execute([':table' => $table]);
-    return (bool) $stmt->fetchColumn();
-}
-
-function aep_first_existing_field(PDO $pdo, string $table, array $candidates): ?string
-{
-    if (!aep_table_exists($pdo, $table)) {
-        return null;
-    }
-
-    $stmt = $pdo->query("PRAGMA table_info({$table})");
-    $columns = array_map(static fn(array $row) => $row['name'], $stmt->fetchAll(PDO::FETCH_ASSOC));
-    foreach ($candidates as $candidate) {
-        if (in_array($candidate, $columns, true)) {
-            return $candidate;
-        }
-    }
-
-    return null;
-}
+require_once __DIR__ . '/includes/database.php';
 
 function aep_domain_profiles(): array
 {
