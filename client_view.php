@@ -1,0 +1,9 @@
+<?php
+require_once __DIR__ . '/includes/auth.php'; require_once __DIR__ . '/includes/functions.php';
+$pdo=aep_database(); $id=(int)($_GET['id']??0); $stmt=$pdo->prepare('SELECT * FROM clients WHERE id=?');$stmt->execute([$id]);$client=$stmt->fetch();
+if(!$client){http_response_code(404);exit('Client not found.');}$stmt=$pdo->prepare('SELECT * FROM matters WHERE client_id=? ORDER BY created_at DESC');$stmt->execute([$id]);$matters=$stmt->fetchAll();
+$pageTitle='Client | AEP';$activeNav='clients';require __DIR__.'/includes/header.php';
+?>
+<div class="actions" style="justify-content:space-between"><div><span class="badge"><?php echo aep_h($client['client_reference']); ?></span><h1 style="margin:8px 0"><?php echo aep_h($client['name']); ?></h1><p class="muted"><?php echo aep_h($client['email']); ?> <?php echo $client['phone'] ? ' | '.aep_h($client['phone']) : ''; ?></p></div><div class="actions"><a class="btn secondary" href="client_edit.php?id=<?php echo $id; ?>">Edit</a><a class="btn" href="matter_create.php?client_id=<?php echo $id; ?>">New matter</a></div></div>
+<div class="card" style="margin-top:18px"><h2>Matters</h2><?php if(!$matters): ?><div class="empty">Ready to create the first matter for this client.</div><?php else:?><table><thead><tr><th>Reference</th><th>Practice area</th><th>Subject</th><th>Status</th></tr></thead><tbody><?php foreach($matters as $matter):?><tr><td><a href="matter_view.php?id=<?php echo (int)$matter['id']; ?>"><?php echo aep_h($matter['matter_reference']);?></a></td><td><?php echo aep_h($matter['practice_area']);?></td><td><?php echo aep_h($matter['subject']);?></td><td><?php echo aep_h($matter['status']);?></td></tr><?php endforeach;?></tbody></table><?php endif;?></div>
+<?php require __DIR__.'/includes/footer.php'; ?>
