@@ -1,7 +1,7 @@
 <?php
 session_start();
-$pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+require_once __DIR__ . '/includes/database.php';
+$pdo = aep_db();
 
 $error   = '';
 $success = '';
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($username && $password) {
         try {
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, 0, datetime('now'))");
             $stmt->execute([$username, $hash]);
             $success = 'Account created! You can now login.';
         } catch (Exception $e) {

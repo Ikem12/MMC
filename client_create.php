@@ -16,8 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $reference = aep_reference('CLI');
         $pdo->prepare('INSERT INTO clients (client_reference,name,email,phone,address) VALUES (?,?,?,?,?)')->execute([$reference,$name,$email,$phone,$address]);
-        aep_log_activity($pdo, 'Clients', 'Created ' . $reference);
-        header('Location: client_view.php?id=' . (int)$pdo->lastInsertId());
+        $newId = (int)$pdo->lastInsertId();
+        aep_log_activity($pdo, 'Clients', 'Created ' . $reference, $newId);
+        header('Location: client_view.php?id=' . $newId);
         exit;
     }
 }

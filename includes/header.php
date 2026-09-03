@@ -24,6 +24,7 @@ $aepNavLinks = [
     'clients' => ['label' => 'Clients', 'href' => 'client_list.php'],
     'matters' => ['label' => 'Matters', 'href' => 'matter_list.php'],
     'tasks' => ['label' => 'Tasks', 'href' => 'task_list.php'],
+    'deadlines' => ['label' => 'Deadlines', 'href' => 'deadline_list.php'],
     'knowledge' => ['label' => 'Knowledge Centre', 'href' => 'knowledge_centre.php'],
     'counsel' => ['label' => 'Counsel Engine', 'href' => 'counsel_engine.php'],
 ];
