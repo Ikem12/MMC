@@ -3,10 +3,17 @@ require_once __DIR__.'/includes/auth.php';require_once __DIR__.'/includes/functi
 $stmt=$pdo->prepare('SELECT COUNT(*) FROM tasks WHERE matter_id=?');$stmt->execute([$id]);$taskCount=(int)$stmt->fetchColumn();
 $stmt=$pdo->prepare('SELECT COUNT(*) FROM deadlines WHERE matter_id=?');$stmt->execute([$id]);$deadlineCount=(int)$stmt->fetchColumn();$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){aep_validate_csrf();
-    $pdo->prepare('DELETE FROM tasks WHERE matter_id=?')->execute([$id]);
-    $pdo->prepare('DELETE FROM deadlines WHERE matter_id=?')->execute([$id]);
-    $pdo->prepare('DELETE FROM matters WHERE id=?')->execute([$id]);
-    aep_log_activity($pdo,'Matters','Deleted '.$matter['matter_reference'],$id);
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('DELETE FROM tasks WHERE matter_id=?')->execute([$id]);
+        $pdo->prepare('DELETE FROM deadlines WHERE matter_id=?')->execute([$id]);
+        $pdo->prepare('DELETE FROM matters WHERE id=?')->execute([$id]);
+        aep_log_activity($pdo,'Matters','Deleted '.$matter['matter_reference'],$id);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
     header('Location:client_view.php?id='.(int)$matter['client_id'].'&msg=Matter+deleted');exit;
 }
 $pageTitle='Delete Matter | AEP';$activeNav='matters';require __DIR__.'/includes/header.php';?>

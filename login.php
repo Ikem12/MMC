@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 $error = '';
 if (!empty($_SESSION['user_id'])) {
@@ -22,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = (int) $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['is_admin'] = (int) $user['is_admin'];
-            $return = (string) ($_GET['return'] ?? '');
-            if ($return === '' || $return[0] !== '/' || (isset($return[1]) && $return[1] === '/')) {
+            $return = aep_safe_return_url($_GET['return'] ?? null);
+            if ($return === '/') {
                 $return = '/dashboard.php';
             }
             header('Location: ' . $return);

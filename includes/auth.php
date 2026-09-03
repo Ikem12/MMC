@@ -38,17 +38,7 @@ if (!function_exists('aep_current_user')) {
     }
 }
 
-if (!function_exists('aep_safe_return_url')) {
-    /** Restrict a return URL to a local relative path to avoid open redirects. */
-    function aep_safe_return_url(?string $url): string
-    {
-        $url = $url ?? '/';
-        if ($url === '' || $url[0] !== '/' || (isset($url[1]) && $url[1] === '/')) {
-            return '/';
-        }
-        return $url;
-    }
-}
+require_once __DIR__ . '/functions.php';
 
 if (!function_exists('aep_require_auth')) {
     /** Guard a page: redirect to login if the visitor is not signed in. */

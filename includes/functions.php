@@ -17,6 +17,18 @@ if (!function_exists('aep_h')) {
     }
 }
 
+if (!function_exists('aep_safe_return_url')) {
+    /** Restrict a return URL to a local relative path to avoid open redirects. */
+    function aep_safe_return_url(?string $url): string
+    {
+        $url = $url ?? '/';
+        if ($url === '' || $url[0] !== '/' || (isset($url[1]) && $url[1] === '/')) {
+            return '/';
+        }
+        return $url;
+    }
+}
+
 if (!function_exists('aep_csrf_token')) {
     /** Return the current CSRF token, generating one if necessary. */
     function aep_csrf_token(): string
