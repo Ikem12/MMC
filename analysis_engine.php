@@ -9,6 +9,8 @@ if (empty($_SESSION['user_id'])) {
 
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+require_once __DIR__ . '/phase2.php';
+$workspaceMatters = p2_matter_options(p2_db());
 
 $today   = date('d F Y');
 $domains = [
@@ -44,6 +46,7 @@ $recommendations = [];
 $score           = 0;
 
 if ($case) {
+    $counselAudit = analyseMatter($case);
     // Common checks
     if (!empty($case['title']))           { $strengths[] = 'Case has a clear title and reference.'; $score += 10; }
     if (!empty($case['claimant']))        { $strengths[] = 'Claimant / applicant is identified.'; $score += 10; }
@@ -133,7 +136,11 @@ if ($case) {
         $recommendations[] = 'Review all JOA and PSC provisions for dispute resolution clauses.';
     }
 
+    $weaknesses = array_values(array_unique(array_merge($weaknesses, identifyEvidenceGaps($counselAudit))));
+    $risks = array_values(array_unique(array_merge($risks, assessRisks($counselAudit))));
+    $recommendations = array_values(array_unique(array_merge($recommendations, (array)($counselAudit['Strategy'] ?? []))));
     $score = min($score, 100);
+    p2_log('analysis.generated', "Generated {$domain} case analysis #{$case_id}", null, ['domain' => $domain, 'case_id' => $case_id]);
 }
 ?>
 <!doctype html>
@@ -198,6 +205,7 @@ if ($case) {
     .case-banner{background:#eef4fb;border-radius:6px;padding:14px 18px;margin-bottom:20px;border:1px solid #c8dff0}
     .case-banner h3{font-size:0.95rem;color:#1a3c5e;margin-bottom:8px}
     .case-banner p{font-size:0.87rem;color:#555;line-height:1.7}
+    .preliminary-notice{background:#fff3cd;border:1px solid #ffe69c;border-radius:6px;padding:12px 16px;margin-bottom:20px;color:#664d03;font-size:.86rem;line-height:1.55}
 
     .no-analysis{text-align:center;padding:50px;color:#888;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
 
@@ -263,8 +271,16 @@ if ($case) {
   <?php if ($case): ?>
 
   <div class="action-bar">
-    <button onclick="window.print()" class="btn btn-print">🖨️ Print Report</button>
+    <button onclick="fetch('activity_track.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf=<?= p2_csrf() ?>&type=document.printed'});window.print()" class="btn btn-print">🖨️ Print Report</button>
     <a href="draft_engine.php?domain=<?php echo $domain; ?>&id=<?php echo $case_id; ?>" class="btn">✍️ Draft Document</a>
+    <form method="post" action="counsel_engine.php" class="action-bar">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars(p2_csrf()) ?>">
+      <input type="hidden" name="action" value="import_legacy_case">
+      <input type="hidden" name="legacy_domain" value="<?= htmlspecialchars($domain) ?>">
+      <input type="hidden" name="legacy_case_id" value="<?= $case_id ?>">
+      <select required name="matter_id" aria-label="Matter to receive this legacy case"><option value="">Import into matter…</option><?php foreach ($workspaceMatters as $workspaceMatter): ?><option value="<?= (int)$workspaceMatter['id'] ?>"><?= htmlspecialchars($workspaceMatter['reference'] . ' — ' . $workspaceMatter['title']) ?></option><?php endforeach; ?></select>
+      <button class="btn">⚖️ Import to Counsel</button>
+    </form>
     <a href="analysis_engine.php" class="btn btn-secondary">← New Analysis</a>
   </div>
 
@@ -278,6 +294,7 @@ if ($case) {
       <strong>Respondent:</strong> <?php echo htmlspecialchars($case['respondent'] ?? '—'); ?>
     </p>
   </div>
+  <div class="preliminary-notice"><strong>PRELIMINARY LOCAL ANALYSIS</strong> — This deterministic checklist uses only the selected case record. It does not verify law, facts, deadlines or evidence and must be reviewed by a responsible lawyer before action. Import it into a matter to retain the source record and continue through the shared Counsel workflow.</div>
 
   <!-- Score -->
   <?php

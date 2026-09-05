@@ -9,6 +9,8 @@ if (empty($_SESSION['user_id'])) {
 
 $pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+require_once __DIR__ . '/phase2.php';
+$workspaceMatters = p2_matter_options(p2_db());
 
 $today   = date('d F Y');
 $domains = [
@@ -36,6 +38,7 @@ if ($domain && $case_id && isset($tables[$domain])) {
     $stmt->execute([':id' => $case_id]);
     $case = $stmt->fetch(PDO::FETCH_ASSOC);
 }
+$counselAudit = $case ? analyseMatter($case) : null;
 
 $docTypes = [
     'demand_letter'   => '📩 Demand Letter',
@@ -97,6 +100,7 @@ $docTypes = [
     .sig-name{font-size:1rem;font-weight:bold;color:#2c3e50;margin-top:30px}
     .sig-title{font-size:0.85rem;color:#666}
     .no-doc{text-align:center;padding:50px;color:#888;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+    .preliminary-notice{background:#fff3cd;border:1px solid #ffe69c;border-radius:6px;padding:11px 14px;margin:0 0 20px;color:#664d03;font-size:.84rem;line-height:1.55}
     .domain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
     .domain-card{background:#f4f6f9;border-radius:6px;padding:16px;text-align:center;border:2px solid #e0e0e0;cursor:pointer;text-decoration:none;color:#333}
     .domain-card:hover{border-color:#2c3e50;background:#eef0f3}
@@ -169,9 +173,19 @@ $docTypes = [
   <?php if ($case): ?>
 
   <div class="action-bar">
-    <button onclick="window.print()" class="btn btn-print">🖨️ Print Document</button>
+    <button onclick="fetch('activity_track.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf=<?= p2_csrf() ?>&type=document.printed'});window.print()" class="btn btn-print">🖨️ Print Document</button>
+    <form method="post" action="counsel_engine.php" class="action-bar">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars(p2_csrf()) ?>">
+      <input type="hidden" name="action" value="import_legacy_case">
+      <input type="hidden" name="legacy_domain" value="<?= htmlspecialchars($domain) ?>">
+      <input type="hidden" name="legacy_case_id" value="<?= $case_id ?>">
+      <select required name="matter_id" aria-label="Matter to receive this legacy case"><option value="">Import into matter…</option><?php foreach ($workspaceMatters as $workspaceMatter): ?><option value="<?= (int)$workspaceMatter['id'] ?>"><?= htmlspecialchars($workspaceMatter['reference'] . ' — ' . $workspaceMatter['title']) ?></option><?php endforeach; ?></select>
+      <button class="btn">⚖️ Import to Counsel</button>
+    </form>
     <a href="draft_engine.php" class="btn btn-secondary">← New Document</a>
   </div>
+  <div class="preliminary-notice"><strong>PRELIMINARY LOCAL DRAFT</strong> — This template is generated deterministically from the selected legacy case record. Verify facts, law, recipient, procedure, dates and remedy before saving, sending or issuing it. Import the source record into a matter to create an editable, reviewable and exportable draft in the shared Counsel workflow.</div>
+  <?php $structuredDraft = generateLetter($counselAudit, ['reference' => 'AEP-' . strtoupper(substr($domain, 0, 3)) . '-' . $case_id, 'title' => $case['title'] ?? 'Legacy case']); ?>
 
   <div class="document">
 
@@ -258,6 +272,8 @@ $docTypes = [
         <p><strong>BACKGROUND</strong></p>
         <p><?php echo nl2br(htmlspecialchars($case['summary'])); ?></p>
       <?php endif; ?>
+      <p><strong>PRELIMINARY COUNSEL CHECK</strong></p>
+      <ul><li><?= htmlspecialchars($structuredDraft['Issues'][0] ?? 'Confirm the issues before issue.') ?></li><li><?= htmlspecialchars($structuredDraft['Law'][0] ?? 'Confirm applicable law and authority.') ?></li><li><?= htmlspecialchars($structuredDraft['Evidence'][0] ?? 'Confirm supporting evidence.') ?></li></ul>
 
       <p>
         We look forward to your prompt response and trust that this matter can be

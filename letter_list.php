@@ -1,169 +1,65 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
-
-$pdo = new PDO('sqlite:' . __DIR__ . '/data/aep.sqlite');
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// Handle delete
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM draft_letters WHERE id = ?")->execute([$_GET['delete']]);
-    header('Location: letter_list.php');
-    exit;
+require_once __DIR__ . '/phase2.php';
+p2_start();
+$pdo = p2_db();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    p2_check_csrf();
+    $id = (int)($_POST['letter_id'] ?? 0);
+    if ((string)($_POST['action'] ?? '') === 'delete' && $id > 0) {
+        $pdo->beginTransaction();
+        foreach (['p5_letter_attachments', 'p5_letter_checklist', 'p5_letter_versions', 'p5_correspondence_timeline', 'p5_correspondence'] as $table) {
+            $pdo->prepare('DELETE FROM ' . $table . ' WHERE letter_id=?')->execute([$id]);
+        }
+        $pdo->prepare('DELETE FROM draft_letters WHERE id=?')->execute([$id]);
+        $pdo->commit();
+        p2_redirect('letter_list.php', 'Correspondence deleted.');
+    }
 }
-
-$search = trim($_GET['search'] ?? '');
-if ($search) {
-    $stmt = $pdo->prepare("SELECT * FROM draft_letters WHERE recipient_name LIKE ? OR ref_no LIKE ? OR letter_type LIKE ? OR subject LIKE ? ORDER BY created_at DESC");
-    $stmt->execute(["%$search%", "%$search%", "%$search%", "%$search%"]);
-} else {
-    $stmt = $pdo->query("SELECT * FROM draft_letters ORDER BY created_at DESC");
+$search = trim((string)($_GET['search'] ?? ''));
+$matterId = (int)($_GET['matter_id'] ?? 0);
+$status = trim((string)($_GET['status'] ?? ''));
+$direction = trim((string)($_GET['direction'] ?? ''));
+$where = []; $params = [];
+if ($search !== '') {
+    $where[] = '(l.recipient_name LIKE ? OR l.ref_no LIKE ? OR l.subject LIKE ? OR l.letter_type LIKE ?)';
+    for ($i = 0; $i < 4; $i++) $params[] = '%' . $search . '%';
 }
-$records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<title>Draft Letters — AEP</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333}
-.topbar{background:#1a3c5e;color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
-.topbar a{color:#fff;text-decoration:none;font-size:0.9rem}
-.topbar a:hover{text-decoration:underline}
-.container{max-width:1100px;margin:30px auto;padding:0 20px}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-h2{color:#1a3c5e;font-size:1.3rem}
-.btn{padding:9px 20px;border:none;border-radius:4px;cursor:pointer;font-size:0.85rem;text-decoration:none;display:inline-block}
-.btn-primary{background:#1a3c5e;color:#fff}
-.btn-primary:hover{background:#122840}
-.btn-danger{background:#dc3545;color:#fff}
-.btn-danger:hover{background:#b02a37}
-.btn-info{background:#17a2b8;color:#fff}
-.btn-info:hover{background:#117a8b}
-.btn-warning{background:#ffc107;color:#333}
-.btn-warning:hover{background:#e0a800}
-.search-bar{display:flex;gap:10px;margin-bottom:20px}
-.search-bar input{flex:1;padding:9px 14px;border:1px solid #ddd;border-radius:4px;font-size:0.9rem}
-.search-bar button{padding:9px 20px;background:#1a3c5e;color:#fff;border:none;border-radius:4px;cursor:pointer}
-.card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
-table{width:100%;border-collapse:collapse;font-size:0.88rem}
-th{background:#1a3c5e;color:#fff;padding:11px 12px;text-align:left}
-td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:top}
-tr:hover td{background:#f8f9ff}
-.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:bold}
-.badge-draft{background:#fff3cd;color:#856404}
-.badge-final{background:#d4edda;color:#155724}
-.badge-sent{background:#cce5ff;color:#004085}
-.empty{text-align:center;padding:40px;color:#888}
-.action-btns{display:flex;gap:6px;flex-wrap:wrap}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:#fff;border-radius:8px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.stat-number{font-size:1.8rem;font-weight:bold;color:#1a3c5e}
-.stat-label{font-size:0.8rem;color:#888;margin-top:4px}
-</style>
-</head>
-<body>
-
-<div class="topbar">
-  <strong>⚖️ AEP Legal Platform</strong>
-  <div style="display:flex;gap:20px">
-    <a href="dashboard.php">🏠 Dashboard</a>
-    <a href="letter_create.php">✉️ New Letter</a>
-    <a href="logout.php">🚪 Logout</a>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- STATS -->
-  <?php
-    $total = $pdo->query("SELECT COUNT(*) FROM draft_letters")->fetchColumn();
-    $draft = $pdo->query("SELECT COUNT(*) FROM draft_letters WHERE status='draft'")->fetchColumn();
-    $sent  = $pdo->query("SELECT COUNT(*) FROM draft_letters WHERE status='sent'")->fetchColumn();
-  ?>
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-number"><?php echo $total; ?></div>
-      <div class="stat-label">Total Letters</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-number"><?php echo $draft; ?></div>
-      <div class="stat-label">Drafts</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-number"><?php echo $sent; ?></div>
-      <div class="stat-label">Sent</div>
-    </div>
-  </div>
-
-  <div class="page-header">
-    <h2>✉️ Draft Letters</h2>
-    <a href="letter_create.php" class="btn btn-primary">➕ New Letter</a>
-  </div>
-
-  <!-- SEARCH -->
-  <form method="GET" class="search-bar">
-    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
-           placeholder="Search by recipient, ref no, type or subject..."/>
-    <button type="submit">🔍 Search</button>
-    <?php if ($search): ?>
-      <a href="letter_list.php" class="btn btn-warning">✖ Clear</a>
-    <?php endif; ?>
-  </form>
-
-  <div class="card">
-    <?php if (empty($records)): ?>
-      <div class="empty">
-        <p style="font-size:2rem">✉️</p>
-        <p>No letters found.</p>
-        <a href="letter_create.php" class="btn btn-primary" style="margin-top:12px">➕ Draft First Letter</a>
-      </div>
-    <?php else: ?>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Ref No</th>
-            <th>Letter Type</th>
-            <th>Recipient</th>
-            <th>Subject</th>
-            <th>Signatory</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($records as $i => $r): ?>
-          <tr>
-            <td><?php echo $i + 1; ?></td>
-            <td><?php echo htmlspecialchars($r['ref_no'] ?: '—'); ?></td>
-            <td><?php echo htmlspecialchars($r['letter_type'] ?: '—'); ?></td>
-            <td><strong><?php echo htmlspecialchars($r['recipient_name']); ?></strong></td>
-            <td><?php echo htmlspecialchars(substr($r['subject'], 0, 40)) . (strlen($r['subject']) > 40 ? '...' : ''); ?></td>
-            <td><?php echo htmlspecialchars($r['signatory_name'] ?: '—'); ?></td>
-            <td>
-              <span class="badge badge-<?php echo $r['status']; ?>">
-                <?php echo ucfirst($r['status']); ?>
-              </span>
-            </td>
-            <td><?php echo date('d M Y', strtotime($r['created_at'])); ?></td>
-            <td>
-              <div class="action-btns">
-                <a href="letter_view.php?id=<?php echo $r['id']; ?>" class="btn btn-info">👁 View</a>
-                <a href="letter_print.php?id=<?php echo $r['id']; ?>" class="btn btn-primary" target="_blank">🖨 Print</a>
-                <a href="letter_list.php?delete=<?php echo $r['id']; ?>" class="btn btn-danger"
-                   onclick="return confirm('Delete this letter?')">🗑 Delete</a>
-              </div>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    <?php endif; ?>
-  </div>
-</div>
-</body>
-</html>
+if ($matterId) { $where[] = 'c.matter_id=?'; $params[] = $matterId; }
+if (in_array($status, ['draft', 'final', 'sent'], true)) { $where[] = 'l.status=?'; $params[] = $status; }
+if (in_array($direction, ['incoming', 'outgoing'], true)) { $where[] = 'c.direction=?'; $params[] = $direction; }
+$sql = "SELECT l.*, c.matter_id,c.practice_area,c.direction,c.requires_response,c.response_due_on,c.response_received_on,c.quality_score,c.bundle_reference,m.reference,m.title AS matter_title,cl.name AS client_name
+ FROM draft_letters l LEFT JOIN p5_correspondence c ON c.letter_id=l.id
+ LEFT JOIN p2_matters m ON m.id=c.matter_id LEFT JOIN p2_clients cl ON cl.id=c.client_id";
+if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
+$sql .= ' ORDER BY l.created_at DESC, l.id DESC';
+$statement = $pdo->prepare($sql); $statement->execute($params); $records = $statement->fetchAll();
+$summary = $pdo->query("SELECT COUNT(*) total,
+ SUM(CASE WHEN l.status='draft' THEN 1 ELSE 0 END) drafts,
+ SUM(CASE WHEN c.direction='incoming' AND c.requires_response=1 AND NOT EXISTS (SELECT 1 FROM p5_correspondence reply JOIN draft_letters reply_letter ON reply_letter.id=reply.letter_id WHERE reply.reply_to_letter_id=c.letter_id AND reply_letter.status='sent') THEN 1 ELSE 0 END) pending_responses,
+ SUM(CASE WHEN c.direction='outgoing' AND l.status='sent' AND c.requires_response=1 AND c.response_received_on IS NULL THEN 1 ELSE 0 END) awaiting_replies
+ FROM draft_letters l LEFT JOIN p5_correspondence c ON c.letter_id=l.id")->fetch() ?: [];
+$matters = p2_matter_options($pdo);
+p2_page('Correspondence workbench', 'letter_list.php', function () use ($records, $search, $matterId, $status, $direction, $summary, $matters) { ?>
+<div class="toolbar"><div><h1>Correspondence workbench</h1><p class="subhead">Matter-linked letters, responses and delivery records.</p></div><a class="button" href="letter_create.php">+ New correspondence</a></div>
+<section class="grid grid-4"><?php foreach (['All correspondence'=>$summary['total'] ?? 0, 'Drafts'=>$summary['drafts'] ?? 0, 'Pending responses'=>$summary['pending_responses'] ?? 0, 'Awaiting replies'=>$summary['awaiting_replies'] ?? 0] as $label=>$value): ?><div class="card"><div class="metric"><?= (int)$value ?></div><div class="metric-label"><?= p2_h($label) ?></div></div><?php endforeach; ?></section>
+<form class="card form-grid" method="get" style="margin-top:18px">
+ <label>Search <input name="search" value="<?= p2_h($search) ?>" placeholder="Reference, recipient, subject or type"></label>
+ <label>Matter <select name="matter_id"><option value="">All matters</option><?php foreach ($matters as $matter): ?><option value="<?= $matter['id'] ?>" <?= $matterId===$matter['id']?'selected':'' ?>><?= p2_h($matter['reference'] . ' — ' . $matter['title']) ?></option><?php endforeach; ?></select></label>
+ <label>Status <select name="status"><option value="">All statuses</option><?php foreach (['draft'=>'Draft','final'=>'Final','sent'=>'Sent'] as $key=>$label): ?><option value="<?= $key ?>" <?= $status===$key?'selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></label>
+ <label>Direction <select name="direction"><option value="">Incoming and outgoing</option><option value="incoming" <?= $direction==='incoming'?'selected':'' ?>>Incoming</option><option value="outgoing" <?= $direction==='outgoing'?'selected':'' ?>>Outgoing</option></select></label>
+ <p><button class="button">Apply filters</button> <a class="button secondary" href="letter_list.php">Clear</a></p>
+</form>
+<section class="card" style="margin-top:18px"><div class="split"><h2>Letters and correspondence</h2><span class="small"><?= count($records) ?> shown</span></div>
+<?php if (!$records): ?><div class="empty">No correspondence matches these filters.<br><a href="letter_create.php">Draft the first item</a>.</div>
+<?php else: ?><div style="overflow-x:auto"><table><thead><tr><th>Reference</th><th>Matter / client</th><th>Recipient and subject</th><th>Direction</th><th>Status</th><th>Response</th><th>Quality</th><th></th></tr></thead><tbody>
+<?php foreach ($records as $record): ?><tr>
+ <td><a href="letter_view.php?id=<?= $record['id'] ?>"><?= p2_h($record['ref_no'] ?: 'Unreferenced') ?></a><small><?= p2_h($record['letter_type'] ?: 'General correspondence') ?></small></td>
+ <td><?= $record['matter_id'] ? '<a href="matters.php?id=' . (int)$record['matter_id'] . '">' . p2_h($record['reference'] ?: $record['matter_title']) . '</a>' : 'Unlinked' ?><small><?= p2_h($record['client_name'] ?: $record['practice_area'] ?: '') ?></small></td>
+ <td><strong><?= p2_h($record['recipient_name']) ?></strong><small><?= p2_h(strlen((string)$record['subject']) > 58 ? substr((string)$record['subject'], 0, 58) . '…' : (string)$record['subject']) ?></small></td>
+ <td><?= p2_status_badge($record['direction'] ?: 'outgoing') ?></td><td><?= p2_status_badge($record['status']) ?></td>
+ <td><?php if ($record['requires_response']): ?><?= $record['response_received_on'] ? 'Received ' . p2_h($record['response_received_on']) : ($record['response_due_on'] ? p2_h($record['response_due_on']) : 'Required') ?><?php else: ?>—<?php endif; ?></td>
+ <td><?= (int)$record['quality_score'] ?>/100</td>
+ <td><a class="button secondary" href="letter_view.php?id=<?= $record['id'] ?>">Open</a>
+ <form method="post" style="display:inline" onsubmit="return confirm('Delete this correspondence record?')"><input type="hidden" name="csrf" value="<?= p2_h(p2_csrf()) ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="letter_id" value="<?= $record['id'] ?>"><button class="button danger">Delete</button></form></td>
+</tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section>
+<?php }); ?>

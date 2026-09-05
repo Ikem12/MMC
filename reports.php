@@ -1,0 +1,38 @@
+<?php
+require_once __DIR__ . '/phase2.php';
+p2_start();
+$pdo = p2_db();
+$area = trim($_GET['area'] ?? '');
+$areas = $pdo->query("SELECT DISTINCT practice_area FROM p2_matters WHERE practice_area IS NOT NULL AND practice_area != '' ORDER BY practice_area")->fetchAll(PDO::FETCH_COLUMN);
+if ($area !== '' && !in_array($area, $areas, true)) $area = '';
+$stmt = $pdo->prepare("SELECT COALESCE(NULLIF(practice_area,''),'Unspecified') area, COUNT(*) total, SUM(CASE WHEN status='closed' THEN 1 ELSE 0 END) closed, SUM(CASE WHEN status!='closed' THEN 1 ELSE 0 END) open FROM p2_matters WHERE ?='' OR practice_area=? GROUP BY COALESCE(NULLIF(practice_area,''),'Unspecified') ORDER BY total DESC");
+$stmt->execute([$area, $area]);
+$byArea = $stmt->fetchAll();
+$summary = $pdo->query("SELECT
+    (SELECT COUNT(*) FROM p2_matters) matters,
+    (SELECT COUNT(*) FROM p2_clients) clients,
+    (SELECT COUNT(*) FROM p2_documents) documents,
+    (SELECT COUNT(*) FROM p3_research) research,
+    (SELECT COUNT(*) FROM p3_tasks WHERE status='open') tasks,
+    (SELECT COUNT(*) FROM p2_counsel_reviews) reviews,
+    (SELECT COUNT(*) FROM p2_deadlines WHERE status='open' AND due_on<date('now')) overdue,
+    (SELECT COUNT(*) FROM p2_deadlines WHERE status='open' AND due_on BETWEEN date('now') AND date('now','+7 days')) due_soon,
+    (SELECT COUNT(*) FROM p3_counsel_actions WHERE status='open') open_actions,
+    (SELECT COUNT(*) FROM draft_letters) correspondence,
+    (SELECT COUNT(*) FROM p5_correspondence c WHERE direction='incoming' AND requires_response=1 AND NOT EXISTS (SELECT 1 FROM p5_correspondence reply JOIN draft_letters reply_letter ON reply_letter.id=reply.letter_id WHERE reply.reply_to_letter_id=c.letter_id AND reply_letter.status='sent')) pending_responses,
+    (SELECT COUNT(*) FROM p5_correspondence c JOIN draft_letters l ON l.id=c.letter_id WHERE c.direction='outgoing' AND l.status='sent' AND c.requires_response=1 AND c.response_received_on IS NULL) awaiting_replies,
+    (SELECT ROUND(AVG(quality_score)) FROM p5_correspondence) correspondence_quality,
+    (SELECT COUNT(*) FROM p6_ai_sessions) ai_sessions,
+    (SELECT COUNT(*) FROM p6_ai_outputs) ai_outputs,
+    (SELECT COUNT(*) FROM p6_ai_outputs WHERE revision_action IS NOT NULL) ai_revisions,
+    (SELECT COUNT(*) FROM p4_workbench_risks WHERE status='open' AND (likelihood='high' OR impact='high')) high_risks")->fetch();
+$activity = $pdo->query("SELECT event_type,COUNT(*) count FROM p2_activity WHERE created_at>=datetime('now','-30 days') GROUP BY event_type ORDER BY count DESC")->fetchAll();
+$deadlineHealth = $pdo->query("SELECT priority, COUNT(*) total, SUM(CASE WHEN due_on < date('now') THEN 1 ELSE 0 END) overdue FROM p2_deadlines WHERE status='open' GROUP BY priority ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END")->fetchAll();
+p2_page('Reports', 'reports.php', function () use ($summary, $byArea, $activity, $deadlineHealth, $area, $areas) { ?>
+<div class="toolbar"><div><h1>Practice reporting</h1><p class="subhead">Operational metrics derived from connected matter workspaces and activity.</p></div><form method="get" class="inline"><select name="area"><option value="">All practice areas</option><?php foreach ($areas as $itemArea): ?><option value="<?= p2_h($itemArea) ?>" <?= $area === $itemArea ? 'selected' : '' ?>><?= p2_h($itemArea) ?></option><?php endforeach; ?></select><button>Filter</button><a class="button secondary" href="reports.php">Clear</a></form></div>
+<section class="grid grid-4"><div class="card"><div class="metric"><?= $summary['clients'] ?></div><div class="metric-label">Clients</div></div><div class="card"><div class="metric"><?= $summary['matters'] ?></div><div class="metric-label">Total matters</div></div><div class="card"><div class="metric"><?= $summary['documents'] ?></div><div class="metric-label">Linked documents</div></div><div class="card"><div class="metric"><?= $summary['research'] ?></div><div class="metric-label">Research records</div></div><div class="card"><div class="metric"><?= $summary['tasks'] ?></div><div class="metric-label">Open tasks</div></div><div class="card"><div class="metric"><?= $summary['reviews'] ?></div><div class="metric-label">Counsel reviews</div></div><div class="card"><div class="metric metric-danger"><?= $summary['overdue'] ?></div><div class="metric-label">Overdue deadlines</div></div><div class="card"><div class="metric metric-warning"><?= $summary['due_soon'] ?></div><div class="metric-label">Due in seven days</div></div></section>
+<section class="card" style="margin-top:18px"><div class="split"><h2>Correspondence health</h2><a class="small" href="letter_list.php">Open workbench</a></div><div class="grid grid-4"><div><div class="metric"><?= (int)$summary['correspondence'] ?></div><div class="metric-label">Correspondence records</div></div><div><div class="metric metric-warning"><?= (int)$summary['pending_responses'] ?></div><div class="metric-label">Pending responses</div></div><div><div class="metric metric-warning"><?= (int)$summary['awaiting_replies'] ?></div><div class="metric-label">Awaiting replies</div></div><div><div class="metric"><?= (int)($summary['correspondence_quality'] ?? 0) ?>/100</div><div class="metric-label">Average draft quality</div></div></div></section>
+<section class="card" style="margin-top:18px"><div class="split"><div><h2>Local AI workspace activity</h2><p class="small">All outputs are preliminary deterministic drafts retained against their source matter for lawyer review.</p></div><a class="button secondary" href="counsel_engine.php">Open Counsel Engine</a></div><div class="grid grid-4"><div><div class="metric"><?= (int)$summary['ai_sessions'] ?></div><div class="metric-label">AI workflow runs</div></div><div><div class="metric"><?= (int)$summary['ai_outputs'] ?></div><div class="metric-label">Matter-linked AI outputs</div></div><div><div class="metric"><?= (int)$summary['ai_revisions'] ?></div><div class="metric-label">Review revisions retained</div></div><div><div class="metric <?= $summary['high_risks'] ? 'metric-danger' : '' ?>"><?= (int)$summary['high_risks'] ?></div><div class="metric-label">Open high-risk items</div></div></div></section>
+<section class="grid grid-2" style="margin-top:18px"><div class="card"><h2>Matters by practice area</h2><?php if (!$byArea): ?><div class="empty">No matter data.</div><?php else: ?><table><thead><tr><th>Area</th><th>Open</th><th>Closed</th><th>Total</th></tr></thead><tbody><?php foreach ($byArea as $row): ?><tr><td><?= p2_h($row['area']) ?></td><td><?= $row['open'] ?></td><td><?= $row['closed'] ?></td><td><?= $row['total'] ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?></div><div class="card"><h2>Deadline health</h2><?php if (!$deadlineHealth): ?><div class="empty">No open deadlines.</div><?php else: ?><table><thead><tr><th>Priority</th><th>Open</th><th>Overdue</th></tr></thead><tbody><?php foreach ($deadlineHealth as $row): ?><tr><td><?= p2_status_badge($row['priority']) ?></td><td><?= $row['total'] ?></td><td class="<?= $row['overdue'] ? 'overdue' : '' ?>"><?= $row['overdue'] ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?></div></section>
+<section class="card" style="margin-top:18px"><h2>Activity in the last 30 days</h2><?php if (!$activity): ?><div class="empty">No workspace activity in this period.</div><?php else: ?><table><thead><tr><th>Activity</th><th>Count</th></tr></thead><tbody><?php foreach ($activity as $row): ?><tr><td><?= p2_h(str_replace('.', ' ', ucwords($row['event_type'], '.'))) ?></td><td><?= $row['count'] ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?></section>
+<?php }); ?>
