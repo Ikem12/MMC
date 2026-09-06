@@ -15,7 +15,7 @@ if ($id <= 0) {
     die("Invalid record ID.");
 }
 
-$stmt = $pdo->prepare("SELECT * FROM legal_advice WHERE id = ?");
+$stmt = $pdo->prepare("SELECT * FROM company_cases WHERE id = ?");
 $stmt->execute([$id]);
 $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -27,7 +27,7 @@ if (!$record) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Print <?= htmlspecialchars($record['file_no'] ?? 'Document') ?></title>
+    <title>Print <?= htmlspecialchars($record['case_reference'] ?? 'Document') ?></title>
     <style>
         body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.5; margin: 40px; color: #000; }
         .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px; }
@@ -46,17 +46,17 @@ if (!$record) {
 
 <div class="header">
     <h1>AEP Legal Intelligence Platform</h1>
-    <div style="font-size: 11pt; font-weight: bold; margin-top: 4px;">Legal Advice & Merits Assessment</div>
+    <div style="font-size: 11pt; font-weight: bold; margin-top: 4px;">Corporate Law & Shareholder Intelligence</div>
 </div>
 
 <div class="meta">
-    <p><strong>DOCUMENT TITLE:</strong> <?= htmlspecialchars($record['subject'] ?? 'Legal Record') ?><br>
-    <strong>REFERENCE:</strong> <?= htmlspecialchars($record['file_no'] ?? 'N/A') ?><br>
-    <strong>PARTY / CLIENT:</strong> <?= htmlspecialchars($record['client_name'] ?? 'N/A') ?><br>
+    <p><strong>DOCUMENT TITLE:</strong> <?= htmlspecialchars($record['company_name'] ?? 'Legal Record') ?><br>
+    <strong>REFERENCE:</strong> <?= htmlspecialchars($record['case_reference'] ?? 'N/A') ?><br>
+    <strong>PARTY / CLIENT:</strong> <?= htmlspecialchars($record['petitioner_name'] ?? 'N/A') ?><br>
     <strong>DATE:</strong> <?= date('d F Y', strtotime($record['created_at'] ?? 'now')) ?></p>
 </div>
 
-<div class="content"><?= htmlspecialchars($record['advice'] ?? '') ?></div>
+<div class="content"><?= htmlspecialchars($record['prejudice_details'] ?? '') ?></div>
 
 <div class="footer">
     AEP Legal Intelligence Platform — Certified Legal Document Record

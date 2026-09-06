@@ -5,12 +5,14 @@
 
 // Start or resume session with safer cookie flags for dev.
 // Note: set 'secure' => true only when running over HTTPS.
-session_set_cookie_params([
-    'httponly' => true,
-    'secure' => false,
-    'samesite' => 'Lax'
-]);
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => false,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 
 // If not logged in, redirect to login page with a return URL (safe, only local relative paths)
 if (empty($_SESSION['user_id'])) {

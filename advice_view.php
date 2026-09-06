@@ -12,16 +12,16 @@ $pdo = p2_db();
 $id = (int)($_GET['id'] ?? 0);
 
 if ($id <= 0) {
-    header("Location: appeal_list.php");
+    header("Location: advice_list.php");
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM grounds_of_appeal WHERE id = ?");
+$stmt = $pdo->prepare("SELECT * FROM legal_advice WHERE id = ?");
 $stmt->execute([$id]);
 $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$record) {
-    header("Location: appeal_list.php");
+    header("Location: advice_list.php");
     exit;
 }
 ?>
@@ -29,7 +29,7 @@ if (!$record) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>View <?= htmlspecialchars($record['case_number'] ?? 'Record') ?> — Appellate Advocacy & Grounds of Appeal</title>
+    <title>View <?= htmlspecialchars($record['file_no'] ?? 'Record') ?> — Legal Advice & Merits Assessment</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
         :root { --primary: #0f2744; --accent: #2563eb; --bg: #f8fafc; --border: #e2e8f0; --text: #1e293b; }
@@ -52,10 +52,10 @@ if (!$record) {
 <body>
 
 <header class="topbar">
-    <div style="font-weight: 700; font-size: 15px;">⚖️ AEP Legal Platform — Appellate Advocacy & Grounds of Appeal</div>
+    <div style="font-weight: 700; font-size: 15px;">⚖️ AEP Legal Platform — Legal Advice & Merits Assessment</div>
     <nav>
-        <a href="appeal_list.php">📋 Back to List</a>
-        <a href="appeal_create.php">⚡ AI Workspace</a>
+        <a href="advice_list.php">📋 Back to List</a>
+        <a href="advice_create.php">⚡ AI Workspace</a>
         <a href="dashboard.php">🏠 Dashboard</a>
     </nav>
 </header>
@@ -64,19 +64,19 @@ if (!$record) {
     <div class="card">
         <div class="header-actions">
             <div>
-                <h1 style="margin: 0; font-size: 20px; color: #0f2744;">📜 <?= htmlspecialchars($record['case_title'] ?? 'Record Details') ?></h1>
-                <p style="margin: 4px 0 0; color: #64748b; font-size: 13px;">Ref: <strong><?= htmlspecialchars($record['case_number'] ?? 'REF-' . $record['id']) ?></strong> | Created: <?= date('d F Y', strtotime($record['created_at'] ?? 'now')) ?></p>
+                <h1 style="margin: 0; font-size: 20px; color: #0f2744;">💡 <?= htmlspecialchars($record['subject'] ?? 'Record Details') ?></h1>
+                <p style="margin: 4px 0 0; color: #64748b; font-size: 13px;">Ref: <strong><?= htmlspecialchars($record['file_no'] ?? 'REF-' . $record['id']) ?></strong> | Created: <?= date('d F Y', strtotime($record['created_at'] ?? 'now')) ?></p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="appeal_print.php?id=<?= $record['id'] ?>" target="_blank" class="btn btn-outline">🖨 Print / PDF</a>
-                <a href="appeal_create.php?id=<?= $record['id'] ?>" class="btn btn-primary">⚡ Open in AI Workspace</a>
+                <a href="advice_print.php?id=<?= $record['id'] ?>" target="_blank" class="btn btn-outline">🖨 Print / PDF</a>
+                <a href="advice_create.php?id=<?= $record['id'] ?>" class="btn btn-primary">⚡ Open in AI Workspace</a>
             </div>
         </div>
 
         <div class="grid-2">
             <div class="field-group">
                 <div class="field-label">Party / Client</div>
-                <div class="field-val"><?= htmlspecialchars($record['party'] ?? 'N/A') ?></div>
+                <div class="field-val"><?= htmlspecialchars($record['client_name'] ?? 'N/A') ?></div>
             </div>
             <div class="field-group">
                 <div class="field-label">Status</div>
@@ -85,7 +85,7 @@ if (!$record) {
         </div>
 
         <h3 style="font-size: 14px; font-weight: 700; color: #334155; text-transform: uppercase; margin-bottom: 8px;">Substantive Record / Statement Content</h3>
-        <div class="full-content"><?= htmlspecialchars($record['grounds'] ?? 'No extended content recorded.') ?></div>
+        <div class="full-content"><?= htmlspecialchars($record['advice'] ?? 'No extended content recorded.') ?></div>
     </div>
 </div>
 
