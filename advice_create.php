@@ -26,23 +26,23 @@ try {
 } catch (Exception $e) {}
 
 // Initial State
-$targetDocType = $_POST['target_doc_type'] ?? 'summary_judgment_skeleton';
-$instructions   = trim((string)($_POST['instructions'] ?? 'Draft an authoritative Skeleton Argument for Summary Judgment under CPR Part 24. Apply the Easyair test, establish that the defence of set-off has no real prospect of success under Gilbert-Ash, and cite clean signed CMR delivery proofs.'));
-$opponentText   = trim((string)($_POST['opponent_text'] ?? 'Extract from Defendant Defence: \"The Defendant disputes the claim and contends it is entitled to set off unliquidated damages of £75,000 for alleged freight delay against invoiced sums. A full trial with cross-examination is required.\"'));
-$factsText      = trim((string)($_POST['facts'] ?? 'The Claimant provided commercial freight services totalling £64,850.00 under a written Master Agreement. All 18 consignments were signed for cleanly without endorsement on the CMR notes. The Defendant failed to pay and raised an unparticularised set-off for alleged delay only after formal pre-action demand.'));
+$targetDocType = $_POST['target_doc_type'] ?? 'formal_advice';
+$instructions   = trim((string)($_POST['instructions'] ?? 'Provide a comprehensive formal legal advice opinion assessing prospects of success, liability analysis, risk exposure, and recommended pre-action strategy for recovery of commercial debt.'));
+$opponentText   = trim((string)($_POST['opponent_text'] ?? 'Extract from Counterparty Position: \"We dispute liability in its entirety and claim an equitable set-off of £75,000 for alleged performance delays. We will resist any proceedings and seek our full legal costs.\"'));
+$factsText      = trim((string)($_POST['facts'] ?? 'The client provided commercial haulage services under a written agreement. All 18 consignments were completed on schedule with clean signed CMR delivery proofs. The counterparty withheld £64,850.00 without legitimate contractual basis and purports to assert an unliquidated cross-claim for consequential losses.'));
 $evidenceText   = trim((string)($_POST['evidence_available'] ?? '• Executed Master Commercial Haulage Agreement
-• 18 Clean Signed CMR Delivery Receipts
-• Unpaid VAT Invoices INV-881 through INV-898 totalling £64,850.00
-• Defendant\'s own contemporaneous warehouse delivery log'));
-$remedyText     = trim((string)($_POST['remedy_requested'] ?? 'Summary Judgment for £64,850.00 plus statutory interest under Late Payment Act 1998 and costs on the indemnity basis.'));
+• 18 Clean Signed CMR Delivery Notes
+• Unpaid VAT Invoices INV-881 to INV-898 totalling £64,850.00
+• Written demand letters and credit control audit trail'));
+$remedyText     = trim((string)($_POST['remedy_requested'] ?? 'Full principal recovery of £64,850.00 plus statutory interest under Late Payment Act 1998 and CPR Part 36 costs protection.'));
 
-$party1         = trim((string)($_POST['client_name'] ?? 'TransGlobal Freight Services Ltd (Applicant)'));
-$party2         = trim((string)($_POST['opposing_party'] ?? 'Apex Logistics UK Ltd (Respondent)'));
-$matterRef      = trim((string)($_POST['case_reference'] ?? ('AEP-SKL-' . date('Y') . '-' . rand(100, 999))));
+$party1         = trim((string)($_POST['client_name'] ?? 'TransGlobal Freight Services Ltd (Client)'));
+$party2         = trim((string)($_POST['opposing_party'] ?? 'Apex Logistics UK Ltd (Counterparty)'));
+$matterRef      = trim((string)($_POST['case_reference'] ?? ('AEP-ADV-' . date('Y') . '-' . rand(100, 999))));
 $selectedMatter = (int)($_POST['linked_matter_id'] ?? ($_GET['matter_id'] ?? 0));
 $selectedClient = (int)($_POST['linked_client_id'] ?? 0);
 $outputDraft    = $_POST['output_draft'] ?? '';
-$outputTitle    = $_POST['output_title'] ?? 'AI Skeleton Argument Intelligence Workspace DRAFT';
+$outputTitle    = $_POST['output_title'] ?? 'AI Legal Advice & Merits Assessment Workspace DRAFT';
 
 $action = $_POST['action'] ?? '';
 
@@ -61,16 +61,16 @@ if ($action === 'reset') {
 
 // Load sample handler
 if ($action === 'sample') {
-    $instructions = 'Draft an authoritative Skeleton Argument for Summary Judgment under CPR Part 24. Apply the Easyair test, establish that the defence of set-off has no real prospect of success under Gilbert-Ash, and cite clean signed CMR delivery proofs.';
-    $opponentText = 'Extract from Defendant Defence: \"The Defendant disputes the claim and contends it is entitled to set off unliquidated damages of £75,000 for alleged freight delay against invoiced sums. A full trial with cross-examination is required.\"';
-    $factsText = 'The Claimant provided commercial freight services totalling £64,850.00 under a written Master Agreement. All 18 consignments were signed for cleanly without endorsement on the CMR notes. The Defendant failed to pay and raised an unparticularised set-off for alleged delay only after formal pre-action demand.';
+    $instructions = 'Provide a comprehensive formal legal advice opinion assessing prospects of success, liability analysis, risk exposure, and recommended pre-action strategy for recovery of commercial debt.';
+    $opponentText = 'Extract from Counterparty Position: \"We dispute liability in its entirety and claim an equitable set-off of £75,000 for alleged performance delays. We will resist any proceedings and seek our full legal costs.\"';
+    $factsText = 'The client provided commercial haulage services under a written agreement. All 18 consignments were completed on schedule with clean signed CMR delivery proofs. The counterparty withheld £64,850.00 without legitimate contractual basis and purports to assert an unliquidated cross-claim for consequential losses.';
     $evidenceText = '• Executed Master Commercial Haulage Agreement
-• 18 Clean Signed CMR Delivery Receipts
-• Unpaid VAT Invoices INV-881 through INV-898 totalling £64,850.00
-• Defendant\'s own contemporaneous warehouse delivery log';
-    $remedyText = 'Summary Judgment for £64,850.00 plus statutory interest under Late Payment Act 1998 and costs on the indemnity basis.';
-    $party1 = 'TransGlobal Freight Services Ltd (Applicant)';
-    $party2 = 'Apex Logistics UK Ltd (Respondent)';
+• 18 Clean Signed CMR Delivery Notes
+• Unpaid VAT Invoices INV-881 to INV-898 totalling £64,850.00
+• Written demand letters and credit control audit trail';
+    $remedyText = 'Full principal recovery of £64,850.00 plus statutory interest under Late Payment Act 1998 and CPR Part 36 costs protection.';
+    $party1 = 'TransGlobal Freight Services Ltd (Client)';
+    $party2 = 'Apex Logistics UK Ltd (Counterparty)';
     $successMsg = 'Pre-configured dispute scenario loaded into workspace.';
 }
 
@@ -95,7 +95,7 @@ $caseData = [
 ];
 
 // Execute Analysis
-$analysis = analyseSkeletonCase($caseData);
+$analysis = analyseAdviceCase($caseData);
 
 // NLP Helper Actions
 if ($action === 'extract_issues') {
@@ -103,7 +103,7 @@ if ($action === 'extract_issues') {
     if (!empty($extracted)) {
         $factsText .= "\n\n[EXTRACTED ISSUES]:\n• " . implode("\n• ", $extracted);
         $caseData['facts'] = $factsText;
-        $analysis = analyseSkeletonCase($caseData);
+        $analysis = analyseAdviceCase($caseData);
         $successMsg = 'Extracted ' . count($extracted) . ' core legal issues into factual framework.';
     }
 }
@@ -112,19 +112,19 @@ if ($action === 'summarise_text') {
     if (!empty($opponentText)) {
         $opponentText = summariseCorrespondenceText($opponentText);
         $caseData['opponent_response'] = $opponentText;
-        $analysis = analyseSkeletonCase($caseData);
+        $analysis = analyseAdviceCase($caseData);
         $successMsg = 'Opponent / counterparty position successfully summarised.';
     } elseif (!empty($factsText)) {
         $factsText = summariseCorrespondenceText($factsText);
         $caseData['facts'] = $factsText;
-        $analysis = analyseSkeletonCase($caseData);
+        $analysis = analyseAdviceCase($caseData);
         $successMsg = 'Factual chronology successfully summarised.';
     }
 }
 
 // Generation Actions
 if (in_array($action, ['generate', 'draft', 'generate_draft', 'analyse'])) {
-    $doc = generateSkeletonDoc($analysis, $caseData, ['reference' => $matterRef], $targetDocType);
+    $doc = generateAdviceDoc($analysis, $caseData, ['reference' => $matterRef], $targetDocType);
     $outputDraft = $doc['content'] ?? ($doc['draft'] ?? ($doc['Generated Draft']['content'] ?? ''));
     $outputTitle = $doc['title'] ?? 'LEGAL DRAFT';
     if ($action === 'analyse') {
@@ -142,9 +142,9 @@ if (in_array($action, ['improve', 'persuasive', 'formal', 'simplify', 'expand', 
 
 // Auto-generate initial draft if empty
 if ($outputDraft === '' && $action !== 'reset') {
-    $doc = generateSkeletonDoc($analysis, $caseData, ['reference' => $matterRef], $targetDocType);
+    $doc = generateAdviceDoc($analysis, $caseData, ['reference' => $matterRef], $targetDocType);
     $outputDraft = $doc['content'] ?? ($doc['draft'] ?? ($doc['Generated Draft']['content'] ?? ''));
-    $outputTitle = $doc['title'] ?? 'AI Skeleton Argument Intelligence Workspace DRAFT';
+    $outputTitle = $doc['title'] ?? 'AI Legal Advice & Merits Assessment Workspace DRAFT';
 }
 
 // Save to Matter
@@ -152,12 +152,12 @@ if ($action === 'save_matter') {
     try {
         $mId = $selectedMatter;
         if ($mId === 0) {
-            $stmt = $pdo->prepare("INSERT INTO matters (reference, title, client_name, practice_area, status, created_at, updated_at) VALUES (?, ?, ?, 'Skeleton Argument Intelligence', 'open', datetime('now'), datetime('now'))");
-            $stmt->execute([$matterRef, 'Skeleton Argument Intelligence: ' . ($party1 ?: 'Dispute'), $party1]);
+            $stmt = $pdo->prepare("INSERT INTO matters (reference, title, client_name, practice_area, status, created_at, updated_at) VALUES (?, ?, ?, 'Legal Advice & Merits Assessment', 'open', datetime('now'), datetime('now'))");
+            $stmt->execute([$matterRef, 'Legal Advice & Merits Assessment: ' . ($party1 ?: 'Dispute'), $party1]);
             $mId = (int)$pdo->lastInsertId();
         }
         $dStmt = $pdo->prepare("INSERT INTO p2_documents (matter_id, title, document_type, content, created_by, created_at) VALUES (?, ?, 'legal_draft', ?, ?, datetime('now'))");
-        $dStmt->execute([$mId, $outputTitle ?: 'AI Skeleton Argument Intelligence Draft', $outputDraft, $_SESSION['user_id'] ?? 1]);
+        $dStmt->execute([$mId, $outputTitle ?: 'AI Legal Advice & Merits Assessment Draft', $outputDraft, $_SESSION['user_id'] ?? 1]);
         $successMsg = "💾 Successfully saved draft to Matter #" . $mId . " (" . htmlspecialchars($matterRef) . ") and Document Library!";
     } catch (Exception $e) {
         $errorMsg = "Failed to save to matter: " . $e->getMessage();
@@ -165,17 +165,17 @@ if ($action === 'save_matter') {
 }
 
 $docTypes = array (
-  'summary_judgment_skeleton' => '🏛️ Claimant CPR Part 24 Summary Judgment Skeleton',
-  'trial_skeleton' => '⚖️ Substantive Trial Skeleton Argument (Claimant / Appellant)',
-  'injunction_skeleton' => '🚨 Urgent Interim Injunction Skeleton Argument',
-  'costs_skeleton' => '💰 Part 36 / Costs Consequence Skeleton Argument',
+  'formal_advice' => '💡 Formal Legal Advice & Merits Assessment',
+  'litigation_risk' => '🛡️ Litigation Risk & Cost Exposure Opinion',
+  'regulatory_opinion' => '📋 Regulatory & Statutory Compliance Review',
+  'settlement_strategy' => '🤝 Pre-Action Settlement & ADR Tactical Roadmap',
 );
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AI Skeleton Argument Intelligence Workspace — AEP Legal Intelligence Platform</title>
+    <title>AI Legal Advice & Merits Assessment Workspace — AEP Legal Intelligence Platform</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
         :root { --p-color: #1e3a8a; --p-accent: #3b82f6; --bg-light: #f8fafc; --border-color: #e2e8f0; }
@@ -245,8 +245,8 @@ $docTypes = array (
 
 <header class="workspace-header">
     <div class="workspace-title">
-        <h1>🏛️ Skeleton Argument Intelligence Workspace</h1>
-        <p>AI-Powered High Court & Tribunal Skeleton Arguments, Argument Mapping, Statutory Proposition Hierarchy & Summary Judgment Applications (CPR Part 24)</p>
+        <h1>💡 Legal Advice & Merits Assessment Workspace</h1>
+        <p>AI-Powered Formal Legal Opinions, Merits Diagnosis (Prospects Rating), Risk Evaluation & Step-by-Step Tactical Advice</p>
     </div>
     <nav class="top-nav">
         <a href="dashboard.php">🏠 Dashboard</a>
@@ -375,11 +375,11 @@ $docTypes = array (
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
                             <div class="form-group">
-                                <label>Applicant / Claimant:</label>
+                                <label>Client Name:</label>
                                 <input type="text" name="client_name" class="form-control" value="<?= htmlspecialchars($party1) ?>">
                             </div>
                             <div class="form-group">
-                                <label>Respondent / Defendant:</label>
+                                <label>Counterparty Name:</label>
                                 <input type="text" name="opposing_party" class="form-control" value="<?= htmlspecialchars($party2) ?>">
                             </div>
                         </div>
@@ -604,7 +604,7 @@ function exportWord() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'AEP-SKL_Draft_' + new Date().toISOString().slice(0,10) + '.doc';
+    a.download = 'AEP-ADV_Draft_' + new Date().toISOString().slice(0,10) + '.doc';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

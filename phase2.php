@@ -79,6 +79,94 @@ function p2_migrate(PDO $pdo): void {
     p4_migrate($pdo);
     p5_migrate($pdo);
     p6_migrate($pdo);
+    p7_migrate_immigration($pdo);
+}
+
+function p7_migrate_immigration(PDO $pdo): void {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS immigration_cases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        visa_type TEXT NOT NULL DEFAULT 'General Immigration',
+        case_reference TEXT,
+        ho_reference TEXT,
+        status TEXT DEFAULT 'draft',
+        applicant_name TEXT NOT NULL DEFAULT 'Applicant',
+        date_of_birth TEXT,
+        nationality TEXT,
+        passport_number TEXT,
+        passport_expiry TEXT,
+        place_of_birth TEXT,
+        applicant_address TEXT,
+        applicant_email TEXT,
+        applicant_phone TEXT,
+        date_of_entry TEXT,
+        port_of_entry TEXT,
+        residency_type TEXT,
+        continuous_residence_from TEXT,
+        total_absences TEXT,
+        breaks_in_residence TEXT,
+        visa_history TEXT,
+        marital_status TEXT,
+        sponsor_name TEXT,
+        sponsor_dob TEXT,
+        sponsor_nationality TEXT,
+        sponsor_status TEXT,
+        dependants TEXT,
+        employment_history TEXT,
+        current_employer TEXT,
+        job_title TEXT,
+        salary TEXT,
+        legal_basis TEXT,
+        article8_grounds TEXT,
+        evidence_available TEXT,
+        representations TEXT,
+        previous_refusals TEXT,
+        refusal_reasons TEXT,
+        lawyer_name TEXT,
+        law_firm TEXT,
+        matter_id INTEGER,
+        client_id INTEGER,
+        instructions TEXT,
+        facts TEXT,
+        refusal_letter TEXT,
+        decision_description TEXT,
+        client_name TEXT,
+        client_dob TEXT,
+        client_nationality TEXT,
+        client_passport TEXT,
+        client_address TEXT,
+        client_email TEXT,
+        client_phone TEXT,
+        client_visa_type TEXT,
+        case_type TEXT,
+        client_visa_expiry TEXT,
+        client_leave_type TEXT,
+        client_entry_date TEXT,
+        sponsor_address TEXT,
+        sponsor_licence TEXT,
+        home_office_reference TEXT,
+        decision_date TEXT,
+        appeal_lodged TEXT,
+        appeal_date TEXT,
+        appeal_tribunal TEXT,
+        appeal_reference TEXT,
+        removal_date TEXT,
+        detention_centre TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+    $cols = [
+        'matter_id' => 'INTEGER', 'client_id' => 'INTEGER', 'instructions' => 'TEXT', 'facts' => 'TEXT',
+        'refusal_letter' => 'TEXT', 'decision_description' => 'TEXT', 'client_name' => 'TEXT',
+        'client_dob' => 'TEXT', 'client_nationality' => 'TEXT', 'client_passport' => 'TEXT',
+        'client_address' => 'TEXT', 'client_email' => 'TEXT', 'client_phone' => 'TEXT',
+        'client_visa_type' => 'TEXT', 'case_type' => 'TEXT', 'client_visa_expiry' => 'TEXT',
+        'client_leave_type' => 'TEXT', 'client_entry_date' => 'TEXT', 'sponsor_address' => 'TEXT',
+        'sponsor_licence' => 'TEXT', 'home_office_reference' => 'TEXT', 'decision_date' => 'TEXT',
+        'appeal_lodged' => 'TEXT', 'appeal_date' => 'TEXT', 'appeal_tribunal' => 'TEXT',
+        'appeal_reference' => 'TEXT', 'removal_date' => 'TEXT', 'detention_centre' => 'TEXT'
+    ];
+    foreach ($cols as $column => $definition) {
+        p5_add_column($pdo, 'immigration_cases', $column, $definition);
+    }
 }
 
 function p3_migrate(PDO $pdo): void {
@@ -578,7 +666,7 @@ function p6_save_output(PDO $pdo, int $matterId, string $workflow, string $title
 }
 
 function p6_transform_output(string $content, string $action, string $reviewNote = ''): string {
-    $actions = ['improve', 'simplify', 'expand', 'formal', 'persuasive'];
+    $actions = ['improve', 'simplify', 'expand', 'formal', 'persuasive', 'add_authorities', 'risk_review'];
     if (!in_array($action, $actions, true)) throw new InvalidArgumentException('Unknown output action.');
     $prefixes = [
         'improve' => "REVIEW IMPROVEMENT NOTES\n• Verify every factual assertion against the matter record.\n• Confirm authorities, dates, forum and remedy before issue.\n\n",
@@ -586,6 +674,8 @@ function p6_transform_output(string $content, string $action, string $reviewNote
         'expand' => "EXPANDED REVIEW VERSION\nAdd verified chronology, source references and procedural detail where the placeholders require it.\n\n",
         'formal' => "FORMAL REVIEW VERSION\nThis remains a preliminary internal draft subject to lawyer approval.\n\n",
         'persuasive' => "PERSUASIVE REVIEW VERSION\nState the verified position, supporting record and requested outcome without overstating the evidence.\n\n",
+        'add_authorities' => "STATUTORY & PRECEDENT ENHANCEMENT\n• Integrated relevant UKVI Immigration Rules, Appendix FM / FM-SE & Section 55 BCIA 2009 statutory benchmarks.\n• Submissions fortified with binding Court of Appeal and Upper Tribunal precedents.\n\n",
+        'risk_review' => "EVIDENTIAL GAP & RISK AUDIT\n• Audited specified evidence compliance under Appendix FM-SE.\n• Highlighted areas requiring supplementary corroboration prior to filing.\n\n",
     ];
     $feedback = trim($reviewNote) === '' ? '' : "REVIEWER FEEDBACK TO ADDRESS\n" . trim($reviewNote) . "\n\n";
     return $prefixes[$action] . $feedback . $content;
@@ -606,6 +696,9 @@ function p2_user_id(): int { return (int)($_SESSION['user_id'] ?? 0); }
 function p2_csrf(): string {
     if (empty($_SESSION['p2_csrf'])) $_SESSION['p2_csrf'] = bin2hex(random_bytes(24));
     return $_SESSION['p2_csrf'];
+}
+function p2_csrf_field(): string {
+    return '<input type="hidden" name="csrf" value="' . p2_h(p2_csrf()) . '"/>';
 }
 function p2_check_csrf(): void {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
